@@ -179,7 +179,10 @@ async def check_neo4j() -> tuple[str, str]:
         return OK, f"RETURN {record['ok']}"
     except AuthError:
         return BAD, "authentication failed — reset the AuraDB password and update NEO4J_PASSWORD"
-    except ServiceUnavailable:
+    except ServiceUnavailable as error:
+        detail = str(error)
+        if "DNS" in detail or "resolve" in detail.lower():
+            return BAD, "DNS lookup failed — instance deleted/paused, or NEO4J_URI is for an old instance"
         return BAD, "instance unreachable — is the AuraDB instance running?"
     except Exception as error:  # noqa: BLE001
         return BAD, str(error)[:160]
