@@ -254,7 +254,7 @@ async def run_sample(folder: Path, chaos: dict | None = None) -> dict:
         print("\nTOP 5")
         for match in report.get("top5", []):
             opportunity = match["opportunity"]
-            sources = ", ".join(source["url"] for source in opportunity.get("sources", []))
+            sources = ", ".join(sorted({source["url"] for source in opportunity.get("sources", [])}))
             print(
                 f"  {match['rank']}. {opportunity['name']} — deadline {opportunity.get('deadline') or 'unknown'} "
                 f"— score {opportunity.get('score')} — {sources}"

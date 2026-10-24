@@ -56,7 +56,7 @@ def _extra_headers(run_id: str) -> dict[str, str]:
 def _call_kwargs(temperature: float, run_id: str) -> dict[str, Any]:
     kwargs: dict[str, Any] = {
         "temperature": temperature,
-        "max_tokens": 12000,
+        "max_tokens": 16000,
         "timeout": 120,
     }
     if settings.llm_api_base:
