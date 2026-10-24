@@ -270,3 +270,11 @@ async def shutdown() -> None:
     await graph_store.close_graph_store()
     await http.close_http()
     await close_graph()
+    try:
+        import litellm
+
+        result = litellm.close_litellm_async_clients()
+        if asyncio.iscoroutine(result):
+            await result
+    except Exception:  # noqa: BLE001 - best-effort client cleanup
+        pass

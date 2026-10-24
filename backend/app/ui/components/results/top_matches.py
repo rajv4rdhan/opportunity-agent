@@ -39,6 +39,8 @@ def _card(match: TopMatch) -> None:
         ui.linear_progress(value=min(1.0, opportunity.score / 100), show_value=False).props(
             "color=primary rounded"
         )
+        if not opportunity.deadline and opportunity.deadline_text:
+            ui.label(opportunity.deadline_text).classes("text-xs text-gray-500")
         if opportunity.funding_text:
             ui.label(opportunity.funding_text).classes("text-sm")
         ui.markdown(match.why_it_fits).classes("text-sm")

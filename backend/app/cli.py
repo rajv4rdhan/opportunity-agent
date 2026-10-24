@@ -184,15 +184,18 @@ async def run_until(target: str, folder: Path) -> None:
 
 
 async def amain(args: argparse.Namespace) -> int:
-    if args.command == "agent":
-        await run_until(args.name, resolve_sample(args.sample))
-        return 0
-    if args.command == "run":
-        from app.services import runner
+    from app.services import runner
 
-        run = await runner.run_sample(resolve_sample(args.sample), chaos=parse_chaos(args.chaos))
-        return 0 if run.get("status") == "finished" else 1
-    return 1
+    try:
+        if args.command == "agent":
+            await run_until(args.name, resolve_sample(args.sample))
+            return 0
+        if args.command == "run":
+            run = await runner.run_sample(resolve_sample(args.sample), chaos=parse_chaos(args.chaos))
+            return 0 if run.get("status") == "finished" else 1
+        return 1
+    finally:
+        await runner.shutdown()
 
 
 def parse_chaos(value: str) -> dict[str, bool]:

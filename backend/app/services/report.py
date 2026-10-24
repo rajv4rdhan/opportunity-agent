@@ -45,7 +45,8 @@ def _top_match_section(report: FinalReport) -> list[str]:
             f"- **Provider:** {opportunity.provider_org}",
             f"- **Country:** {opportunity.country or '—'}",
             f"- **Funding:** {opportunity.funding_type} — {opportunity.funding_text or 'see source'}",
-            f"- **Deadline:** {opportunity.deadline or 'not stated'}",
+            f"- **Deadline:** {opportunity.deadline or 'not stated'}"
+            + (f" — {opportunity.deadline_text}" if opportunity.deadline_text else ""),
             f"- **Eligibility:** {opportunity.eligibility} · score {opportunity.score:.0f}/100 · {opportunity.verification}",
             "",
             match.why_it_fits,
