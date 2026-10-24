@@ -1,0 +1,24 @@
+{
+  "github_url": "https://github.com/karpathy",
+  "linkedin_url": "",
+  "other_links": [],
+  "target_countries": [
+    "United States"
+  ],
+  "target_degree": "PhD",
+  "target_fields": [
+    "Robotics",
+    "Electrical Engineering"
+  ],
+  "nationality": "India",
+  "budget_inr_per_year": 4000000,
+  "test_scores": {
+    "ielts": null,
+    "toefl": 108.0,
+    "pte": null,
+    "duolingo": null,
+    "gre": 322.0,
+    "gmat": null
+  },
+  "notes": "Research-focused; needs a fully funded PhD with an assistantship."
+}
