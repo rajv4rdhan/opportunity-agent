@@ -21,6 +21,7 @@ def frame(title: str) -> Iterator[None]:
             ui.label(title).classes("text-sm opacity-70")
         with ui.row().classes("items-center gap-2"):
             ui.link("New search", "/").classes("text-white no-underline")
+            ui.link("History", "/runs").classes("text-white no-underline")
             ui.button(icon="dark_mode", on_click=dark.toggle).props("flat round color=white")
 
     with ui.column().classes("w-full max-w-7xl mx-auto p-4 gap-4"):

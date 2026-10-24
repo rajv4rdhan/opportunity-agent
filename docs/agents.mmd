@@ -25,6 +25,7 @@ graph TD;
 	github_enricher --> planner;
 	planner --> scout;
 	profile_analyst --> profile_supervisor;
+	profile_supervisor -. &nbsp;end&nbsp; .-> __end__;
 	profile_supervisor -.-> clarifier;
 	profile_supervisor -.-> github_enricher;
 	scout --> __end__;

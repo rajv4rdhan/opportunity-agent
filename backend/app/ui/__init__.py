@@ -2,4 +2,4 @@
 
 
 def register_pages() -> None:
-    from app.ui.pages import home  # noqa: F401
+    from app.ui.pages import home, run_detail, runs  # noqa: F401
