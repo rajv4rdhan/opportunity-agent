@@ -1,0 +1,49 @@
+# ---------- Web / API ----------
+fastapi>=0.115
+uvicorn[standard]>=0.30
+sse-starlette>=2.1
+python-multipart>=0.0.9
+
+# ---------- Config / models ----------
+pydantic>=2.8
+pydantic-settings>=2.4
+
+# ---------- Orchestration ----------
+langgraph>=1.0
+langgraph-checkpoint-sqlite>=3.0
+aiosqlite>=0.20
+
+# ---------- LLM ----------
+litellm>=1.60
+instructor>=1.7
+
+# ---------- HTTP ----------
+httpx>=0.27
+tenacity>=9.0
+
+# ---------- Documents ----------
+pymupdf>=1.24
+
+# ---------- Graph ----------
+neo4j>=5.24
+networkx>=3.3
+
+# ---------- Browser ----------
+kernel>=0.120
+playwright>=1.48
+
+# ---------- Utilities ----------
+tldextract>=5.1
+python-dateutil>=2.9
+
+# ---------- Observability (optional at runtime) ----------
+langfuse>=2.50
+
+# ---------- UI ----------
+nicegui>=3.0
+
+# ---------- Dev / tests ----------
+pytest>=8.0
+pytest-asyncio>=0.24
+respx>=0.21
+reportlab>=4.2

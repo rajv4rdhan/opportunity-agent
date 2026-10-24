@@ -1,0 +1,19 @@
+{
+  "github_url": "https://github.com/karpathy",
+  "linkedin_url": "",
+  "other_links": [],
+  "target_countries": ["Canada", "Germany", "Singapore"],
+  "target_degree": "MS",
+  "target_fields": ["Computer Science", "Artificial Intelligence"],
+  "nationality": "India",
+  "budget_inr_per_year": 1500000,
+  "test_scores": {
+    "ielts": null,
+    "toefl": null,
+    "pte": null,
+    "duolingo": null,
+    "gre": null,
+    "gmat": null
+  },
+  "notes": "Final-year B.Tech CSE student. Prefers funded programs; no English test score yet."
+}
