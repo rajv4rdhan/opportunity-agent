@@ -31,8 +31,12 @@ def _options(data: dict) -> dict:
             "symbolSize": 26 if node.get("type") in {"Student", "Opportunity"} else 14,
             "value": node.get("label", node["id"]),
             "label": {
-                "show": node.get("type") in {"Student", "Opportunity", "Project"},
-                "formatter": node.get("label", node["id"]),
+                "show": node.get("type") in {"Student", "Opportunity"},
+                "formatter": (
+                    (node.get("label", node["id"])[:22] + "…")
+                    if len(node.get("label", node["id"])) > 23
+                    else node.get("label", node["id"])
+                ),
                 "fontSize": 10,
             },
         }
@@ -62,7 +66,7 @@ def _options(data: dict) -> dict:
                 "categories": categories,
                 "data": chart_nodes,
                 "links": chart_links,
-                "force": {"repulsion": 120, "edgeLength": 90, "gravity": 0.1},
+                "force": {"repulsion": 260, "edgeLength": 120, "gravity": 0.08},
                 "itemStyle": {"borderColor": "#fff", "borderWidth": 1},
                 "emphasis": {"focus": "adjacency"},
                 "color": [TYPE_COLORS.get(node_type, "#94a3b8") for node_type in types],
@@ -74,6 +78,9 @@ def _options(data: dict) -> dict:
 class KnowledgeGraph:
     def __init__(self) -> None:
         self.chart = ui.echart(_options({"nodes": [], "links": []})).style("width: 100%; height: 440px")
+        self.note = ui.label(
+            "No graph data yet. Nodes appear as the Matcher writes them."
+        ).classes("text-xs text-gray-500")
         self._version = -1
 
     async def refresh(self, view: RunView) -> None:
@@ -85,3 +92,13 @@ class KnowledgeGraph:
         self.chart.options.clear()
         self.chart.options.update(_options(data))
         self.chart.update()
+        if data.get("nodes"):
+            self.note.text = (
+                f"{len(data['nodes'])} nodes, {len(data.get('links', []))} links · "
+                "green = meets, red = misses"
+            )
+        else:
+            self.note.text = (
+                "No graph data in this process. The in-memory graph does not survive a restart; "
+                "configure Neo4j to persist it."
+            )
