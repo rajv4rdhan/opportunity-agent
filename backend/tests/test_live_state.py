@@ -41,13 +41,16 @@ def test_interrupt_and_resume():
     assert view.status == "running"
 
 
-def test_run_finished_sets_duration():
+def test_run_finished_sets_duration_and_clears_browser():
     view = RunView("run1")
     reduce_event(view, event(1, "run_started"))
+    reduce_event(view, event(2, "browser_live_view", url="https://live.example"))
+    assert view.live_view_url == "https://live.example"
     reduce_event(view, event(9, "run_finished"))
     assert view.finished is True
     assert view.status == "finished"
     assert view.stats.duration_sec == 8.0
+    assert view.live_view_url is None
 
 
 def test_candidates_browser_and_graph():

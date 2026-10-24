@@ -17,6 +17,14 @@ class LiveBrowser:
             )
 
     def update(self, view: RunView) -> None:
+        if view.finished and not view.live_view_url:
+            self._url = None
+            self.container.clear()
+            with self.container:
+                ui.label("The run has finished; the cloud browser session ended.").classes(
+                    "text-sm text-gray-500 p-4"
+                )
+            return
         if not view.live_view_url or view.live_view_url == self._url:
             return
         self._url = view.live_view_url

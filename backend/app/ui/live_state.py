@@ -88,13 +88,15 @@ def reduce_event(view: RunView, event: Event) -> set[str]:
     elif kind == "run_finished":
         view.finished = True
         view.status = "finished"
+        view.live_view_url = None
         if view.started_at:
             view.stats.duration_sec = round((event.ts - view.started_at).total_seconds(), 1)
-        dirty |= {"flow", "stats", "results"}
+        dirty |= {"flow", "stats", "results", "browser"}
     elif kind == "run_failed":
         view.finished = True
         view.status = "failed"
-        dirty |= {"flow", "stats", "results"}
+        view.live_view_url = None
+        dirty |= {"flow", "stats", "results", "browser"}
     elif kind == "interrupt":
         view.interrupt = event.data
         view.status = "waiting_input"
