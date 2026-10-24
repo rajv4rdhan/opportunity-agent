@@ -10,6 +10,8 @@ from nicegui import ui
 
 from app.api.health import router as health_router
 from app.config import settings
+from app.core import store
+from app.services import runner
 from app.ui import register_pages
 
 
@@ -18,7 +20,10 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     settings.data_dir.mkdir(parents=True, exist_ok=True)
     (settings.data_dir / "uploads").mkdir(parents=True, exist_ok=True)
     settings.export_env()
+    await store.init_db()
+    await runner.init_graph()
     yield
+    await runner.shutdown()
 
 
 def create_app() -> FastAPI:

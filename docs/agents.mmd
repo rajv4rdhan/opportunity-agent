@@ -1,0 +1,34 @@
+---
+config:
+  flowchart:
+    curve: linear
+---
+graph TD;
+	__start__(<p>__start__</p>)
+	profile_analyst(profile_analyst)
+	profile_supervisor(profile_supervisor)
+	clarifier(clarifier)
+	github_enricher(github_enricher)
+	planner(planner)
+	scout(scout)
+	verifier(verifier)
+	matcher(matcher)
+	matcher_supervisor(matcher_supervisor)
+	ranker(ranker)
+	sop_writer(sop_writer)
+	critic(critic)
+	critic_supervisor(critic_supervisor)
+	finalizer(finalizer)
+	__end__(<p>__end__</p>)
+	__start__ --> profile_analyst;
+	clarifier --> github_enricher;
+	github_enricher --> planner;
+	planner --> scout;
+	profile_analyst --> profile_supervisor;
+	profile_supervisor -.-> clarifier;
+	profile_supervisor -.-> github_enricher;
+	scout --> __end__;
+	classDef default fill:#f2f0ff,line-height:1.2
+	classDef first fill-opacity:0
+	classDef last fill:#bfb6fc
+
