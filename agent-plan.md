@@ -5,6 +5,12 @@
 > Anything that needs a human (API keys, accounts, PDFs, decisions) is in `human-plan.md`.
 > If a required value is missing, **STOP and ask the human**, quoting the exact item from `human-plan.md`.
 
+> **Build status (2026-10-24):** phases 1–9 are implemented, tested and committed. A real run
+> completed with **10 verified opportunities**, top 5 and a **946-word SOP** in 718 s for
+> **$0.099** of OpenCode Go usage. The only open item is the **Neo4j Aura URI/credentials**.
+> See **`STATUS.md`** for verified results, current configuration, tomorrow's TODO and exact
+> commands.
+
 ---
 
 ## 0. Ground rules (apply to every line of code)
@@ -1122,6 +1128,11 @@ Use `respx` to mock HTTP; set `MODEL_*` to a dummy and monkeypatch `call_llm` in
 | **8. Hardening** | Run all 4 samples via UI. Run each chaos flag. Fix any crash. Make sure a run with Neo4j down still finishes (MemoryStore). Make sure no-GitHub profile skips enrichment cleanly. Make sure interrupt → resume works. | All 4 profiles produce results without code changes; all chaos flags recover. |
 | **9. Docs** | `README.md` (what, architecture, setup, run, env vars, demo steps), `docs/architecture.md` (mermaid below + agent table + failure-handling table), `docs/notes.md` draft (most interesting experiment, biggest challenge — leave `[HUMAN: …]` placeholders for personal opinions). | Human reviews. |
 
+**Status (2026-10-24):** phases 0–9 are done; see `STATUS.md`. Phase 3's Neo4j line is the only
+non-green check (the Aura host no longer resolves; the app uses the in-memory fallback). Real-LLM
+runs exist for `rahul`; `priya`, `arjun` and `meera` have structural (mock-LLM) runs and should be
+re-run with the live model tomorrow.
+
 Commit after each phase: `git add -A && git commit -m "phase N: <summary>"` (never commit `.env`).
 
 ---
@@ -1174,12 +1185,30 @@ Failure-handling table to include in docs:
 
 ## 18. Definition of done (checklist)
 
-- [ ] Launch from UI with a resume PDF → finishes in < 15 min with ≥ 10 verified real opportunities (or explicit message why fewer), top 5 with sources, gaps, SOP.
-- [ ] Every opportunity has ≥ 1 source URL + quote; verification badge shown.
-- [ ] Live agent graph, event feed, live browser view, knowledge graph all update during the run.
-- [ ] Each chaos flag produces a visible failure + recovery and the run still finishes.
+- [x] Launch from UI with a resume PDF → finishes in < 15 min with ≥ 10 verified real opportunities (or explicit message why fewer), top 5 with sources, gaps, SOP.
+  - Real run: 10 verified, top 5, 718 s, $0.099 Go usage.
+- [x] Every opportunity has ≥ 1 source URL + quote; verification badge shown.
+  - Top-5 source quotes re-fetched and checked: 5/5 supported.
+- [x] Live agent graph, event feed, live browser view, knowledge graph all update during the run.
+  - Live browser clears when the run ends (Kernel session closed); without Neo4j the graph is in-process only.
+- [x] Each chaos flag produces a visible failure + recovery and the run still finishes.
+  - All five flags fired once and recovered (real search/fetch, mock extraction).
 - [ ] All 4 sample profiles work with zero code changes.
-- [ ] Interrupt/resume works.
-- [ ] `pytest -q` passes.
-- [ ] README + docs/architecture.md + docs/notes.md written.
-- [ ] No secrets committed (`git grep -i "api_key=" -- ':!*.example'` returns nothing sensitive).
+  - `rahul` verified with the real model; `priya`, `arjun`, `meera` passed structurally with the mock LLM. Re-run them with the live model (see `STATUS.md`).
+- [x] Interrupt/resume works.
+  - Tested with `priya` via API and the UI Skip button, including resume after a restart.
+- [x] `pytest -q` passes.
+  - 39 passed.
+- [x] README + docs/architecture.md + docs/notes.md written.
+- [x] No secrets committed (`git grep -i "api_key=" -- ':!*.example'` returns nothing sensitive).
+
+> `STATUS.md` is the authoritative handoff snapshot: verified results, current `.env` shape,
+> known limitations, tomorrow's ordered TODO and exact commands.
+
+---
+
+## 19. Progress log
+
+| Date | Milestone |
+|---|---|
+| 2026-10-24 | Phases 1–9 implemented and committed. Real `rahul` run: 10 verified, top 5, 946-word SOP, 13 critic notes, 718 s, $0.099. UI, chaos, interrupt/resume and 39 tests verified. Remaining: fix the Neo4j Aura URI/credentials, then re-run the other three samples with the live model. |

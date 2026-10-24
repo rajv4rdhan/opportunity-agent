@@ -4,6 +4,10 @@
 > This file lists everything only you can do, in order. Do sections 1–4 **before** telling the agent to start.
 > Estimated time: about 60–90 minutes.
 
+> **Status (2026-10-24):** the build is complete and committed. See `STATUS.md`. The only open
+> human action is fixing the **Neo4j Aura URI/credentials** (the host currently does not resolve;
+> the app falls back to the in-memory graph). Everything else in the checkpoints below is done.
+
 ---
 
 ## 1. Install software (about 15 min)
@@ -147,12 +151,12 @@ The plan already has defaults. Change one only if you disagree.
 
 | Decision | Default in plan | Change? |
 |---|---|---|
-| LLM provider | Anthropic (Claude) | ______ |
-| App name | ScholarSwarm | ______ |
-| Minimum verified opportunities before stopping | 10 | ______ |
-| Max research rounds | 3 | ______ |
-| Run time limit | 15 min | ______ |
-| Use your own resume or the fictional Rahul? | Fictional Rahul | ______ |
+| LLM provider | Anthropic (Claude) | **OpenCode Go** — `deepseek-v4.1-flash` via `https://opencode.ai/inference/go/openai/v1` |
+| App name | ScholarSwarm | Unchanged |
+| Minimum verified opportunities before stopping | 10 | Unchanged |
+| Max research rounds | 3 | Unchanged |
+| Run time limit | 15 min | Unchanged |
+| Use your own resume or the fictional Rahul? | Fictional Rahul | Unchanged |
 
 ---
 
@@ -174,6 +178,11 @@ Open the project folder `D:\cdownlode\tetra-hackathon` in Claude Code (or your c
 | 7 | Website works | Open http://localhost:8000, load the Rahul sample, click **Launch Agents**, and watch it finish |
 | 8 | Adaptability | Run the **priya / arjun / meera** samples. Results must make sense for each (e.g. Arjun gets MBA options, not CS) |
 | 8 | Failure handling | Turn on each Chaos switch and confirm amber "fallback" events appear and the run still finishes |
+
+**Progress (2026-10-24):** 1 ✅ · 3 ✅ except Neo4j ❌ (stale Aura host) · 5 ✅ (real run: 10 verified,
+top 5, 946-word SOP) · 7 ✅ (UI + results verified in Chromium) · 8 ✅ chaos and interrupt/resume;
+`arjun`/`priya`/`meera` passed structurally with the mock LLM but should be re-run with the live
+model. Details and the Neo4j fix are in `STATUS.md`.
 
 ### Running the app yourself (1 terminal)
 
