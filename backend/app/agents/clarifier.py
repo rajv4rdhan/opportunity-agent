@@ -38,7 +38,7 @@ def critical_missing(profile: StudentProfile) -> list[str]:
 
 def apply_answers(profile: StudentProfile, answers: dict) -> StudentProfile:
     for field, value in (answers or {}).items():
-        if value in (None, "", []):
+        if field.startswith("__") or value in (None, "", []):
             continue
         if field in StudentProfile.model_fields:
             setattr(profile, field, value)

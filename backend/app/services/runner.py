@@ -194,7 +194,12 @@ async def _fail(run_id: str, message: str) -> None:
 
 async def resume_run(run_id: str, answers: dict) -> None:
     """Resume an interrupted graph in the background; the UI keeps polling events."""
-    asyncio.create_task(_resume(run_id, answers))
+    # LangGraph treats an empty dict as "no resume value" and re-raises the
+    # interrupt, so a deliberate skip needs a non-empty sentinel.
+    payload = dict(answers or {})
+    if not payload:
+        payload = {"__skip__": True}
+    asyncio.create_task(_resume(run_id, payload))
 
 
 async def _resume(run_id: str, answers: dict) -> None:

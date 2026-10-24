@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Literal
 
 from app.config import settings
 from app.core import store
-from app.core.events import bump, emit
+from app.core.events import emit
 from app.core.fallback import AllProvidersFailed, first_success
 from app.core.http import http_get_text, http_post_json
 from app.core.utils import normalize_url, truncate
@@ -90,7 +90,10 @@ async def fetch_page(ctx: "AgentCtx", url: str) -> PageContent:
     """Fetch a page with visible fallbacks. Raises AllProvidersFailed if blocked."""
     cached = await _from_cache(url)
     if cached is not None:
-        bump(ctx.run_id, pages_read=1)
+        await emit(
+            ctx.run_id, "log", f"Served {url} from cache ({len(cached.text)} chars)", ctx.agent,
+            url=url, pages_read=1, method="cache",
+        )
         return cached
 
     used = {"method": "jina"}
@@ -122,8 +125,10 @@ async def fetch_page(ctx: "AgentCtx", url: str) -> PageContent:
     text = truncate(text, settings.page_char_limit)
     method = used["method"]
     await _save_cache(url, text, url, method)
-    bump(ctx.run_id, pages_read=1)
-    await emit(ctx.run_id, "log", f"Fetched {url} via {method} ({len(text)} chars)", ctx.agent, url=url)
+    await emit(
+        ctx.run_id, "log", f"Fetched {url} via {method} ({len(text)} chars)", ctx.agent,
+        url=url, pages_read=1, method=method,
+    )
     return PageContent(url=url, final_url=url, text=text, method=method)  # type: ignore[arg-type]
 
 

@@ -91,7 +91,6 @@ def _count(event: Event) -> None:
         stats.fallbacks += 1
     elif event.type in {"tool_error", "agent_failed", "run_failed"}:
         stats.errors += 1
-    elif event.type == "tool_result":
-        pages = event.data.get("pages_read")
-        if isinstance(pages, int):
-            stats.pages_read += pages
+    pages = event.data.get("pages_read")
+    if isinstance(pages, int):
+        stats.pages_read += pages

@@ -465,6 +465,9 @@ async def get_graph_store(ctx: "AgentCtx") -> GraphStore:
     global _neo4j_store, _neo4j_failed
     if _neo4j_store is not None:
         return _neo4j_store
+    if ctx.chaos.get("graph_db_down"):
+        # Demonstrate the recovery even when Neo4j was never configured.
+        await maybe_fail(ctx.run_id, ctx.chaos, "graph.neo4j")
     if _neo4j_failed or not settings.configured("neo4j"):
         return MemoryStore()
     try:
