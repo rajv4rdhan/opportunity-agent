@@ -166,6 +166,7 @@ async def check_neo4j() -> tuple[str, str]:
     if not settings.configured("neo4j"):
         return SKIP, "not configured (in-memory fallback)"
     from neo4j import AsyncGraphDatabase
+    from neo4j.exceptions import AuthError, ServiceUnavailable
 
     driver = AsyncGraphDatabase.driver(
         settings.neo4j_uri, auth=(settings.neo4j_username, settings.neo4j_password)
@@ -176,6 +177,10 @@ async def check_neo4j() -> tuple[str, str]:
             result = await session.run("RETURN 1 AS ok")
             record = await result.single()
         return OK, f"RETURN {record['ok']}"
+    except AuthError:
+        return BAD, "authentication failed — reset the AuraDB password and update NEO4J_PASSWORD"
+    except ServiceUnavailable:
+        return BAD, "instance unreachable — is the AuraDB instance running?"
     except Exception as error:  # noqa: BLE001
         return BAD, str(error)[:160]
     finally:
@@ -207,7 +212,7 @@ CHECKS = [
     ("firecrawl", check_firecrawl, False),
     ("kernel", check_kernel, True),
     ("github", check_github, True),
-    ("neo4j", check_neo4j, False),
+    ("neo4j", check_neo4j, bool(settings.configured("neo4j"))),
     ("langfuse", check_langfuse, False),
 ]
 
