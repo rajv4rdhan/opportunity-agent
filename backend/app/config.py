@@ -9,6 +9,9 @@ from typing import Any
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# Keep onnxruntime's device-discovery warnings out of the CLI/UI output.
+os.environ.setdefault("ORT_LOGGING_LEVEL", "3")
+
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BACKEND_DIR / "data"
 
