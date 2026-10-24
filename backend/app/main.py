@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from nicegui import ui
 
 from app.api.health import router as health_router
+from app.api.runs import router as runs_router
 from app.config import settings
 from app.core import store
 from app.services import runner
@@ -29,6 +30,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 def create_app() -> FastAPI:
     app = FastAPI(title="ScholarSwarm", version="0.1.0", lifespan=lifespan)
     app.include_router(health_router, prefix="/api")
+    app.include_router(runs_router, prefix="/api")
 
     register_pages()
     ui.run_with(

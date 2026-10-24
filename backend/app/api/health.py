@@ -11,7 +11,8 @@ router = APIRouter(tags=["health"])
 
 @router.get("/health")
 async def health() -> dict:
-    return {
-        "status": "ok",
-        "providers": {name: settings.configured(name) for name in PROVIDERS},
-    }
+    from app.tools.github import resolve_token
+
+    providers = {name: settings.configured(name) for name in PROVIDERS}
+    providers["github"] = bool(resolve_token())
+    return {"status": "ok", "providers": providers}

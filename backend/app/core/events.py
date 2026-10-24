@@ -19,16 +19,21 @@ async def emit(
     type: str,
     message: str,
     agent: str | None = None,
-    **data,
+    data: dict | None = None,
+    **fields,
 ) -> Event:
-    """Persist one event, update counters and push it to live subscribers."""
+    """Persist one event, update counters and push it to live subscribers.
+
+    Both `emit(..., url=...)` and `emit(..., data={"url": ...})` produce flat data.
+    """
+    payload = {**(data or {}), **fields}
     event = Event(
         run_id=run_id,
         ts=datetime.now(timezone.utc),
         type=type,  # type: ignore[arg-type]
         agent=agent,
         message=message,
-        data=data,
+        data=payload,
     )
     event.id = await store.insert_event(event)
     _count(event)
