@@ -32,14 +32,25 @@ def _split(text: str) -> tuple[str, str]:
     return parts["SYSTEM"], parts["USER"]
 
 
-def _render(value: Any) -> str:
+def _plain(value: Any) -> Any:
     if isinstance(value, BaseModel):
-        return value.model_dump_json(indent=2)
-    if isinstance(value, (dict, list, tuple)):
-        return json.dumps(value, indent=2, default=str)
-    if value is None:
+        return value.model_dump(mode="json")
+    if isinstance(value, dict):
+        return {key: _plain(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_plain(item) for item in value]
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    return value
+
+
+def _render(value: Any) -> str:
+    plain = _plain(value)
+    if plain is None:
         return "null"
-    return str(value)
+    if isinstance(plain, str):
+        return plain
+    return json.dumps(plain, indent=2, default=str)
 
 
 def _fill(template: str, values: dict[str, str]) -> str:

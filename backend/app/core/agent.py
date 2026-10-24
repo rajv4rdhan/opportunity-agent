@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import functools
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
@@ -30,11 +31,12 @@ class AgentCtx:
         prompt_name: str,
         response_model: type | None = None,
         tier: str = "fast",
+        images: list[bytes] | None = None,
         **variables: Any,
     ) -> Any:
         from app.core.llm import call_llm
 
-        return await call_llm(self, prompt_name, response_model, tier=tier, **variables)
+        return await call_llm(self, prompt_name, response_model, tier=tier, images=images, **variables)
 
 
 AgentFn = Callable[[dict, AgentCtx], Awaitable[dict]]
@@ -44,6 +46,7 @@ def agent(name: str) -> Callable[[AgentFn], Callable[[dict], Awaitable[dict]]]:
     """Wrap an agent function into a LangGraph node with visible lifecycle events."""
 
     def decorator(fn: AgentFn) -> Callable[[dict], Awaitable[dict]]:
+        @functools.wraps(fn)
         async def node(state: dict) -> dict:
             ctx = AgentCtx(run_id=state["run_id"], agent=name, chaos=state.get("chaos", {}))
             await emit(ctx.run_id, "agent_started", name, name)

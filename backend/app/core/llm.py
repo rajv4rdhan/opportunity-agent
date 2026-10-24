@@ -48,7 +48,6 @@ def _call_kwargs(temperature: float) -> dict[str, Any]:
         "temperature": temperature,
         "max_tokens": 4000,
         "timeout": 120,
-        "max_retries": 0,  # retries belong to core/fallback.py
     }
     if settings.llm_api_base:
         kwargs["api_base"] = settings.llm_api_base
@@ -104,7 +103,9 @@ async def call_llm(
             )
             _add_cost(ctx.run_id, completion)
             return parsed
-        completion = await litellm.acompletion(model=model, messages=messages, **kwargs)
+        completion = await litellm.acompletion(
+            model=model, messages=messages, max_retries=0, **kwargs
+        )
         _add_cost(ctx.run_id, completion)
         return (completion.choices[0].message.content or "").strip()
 

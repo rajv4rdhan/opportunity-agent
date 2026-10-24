@@ -1,6 +1,7 @@
 """Shared Pydantic models. Import from here, never redefine shapes elsewhere."""
 
 from app.models.events import Event, EventType
+from app.models.agent_outputs import CriticOutput, PlannerOutput, VerifierOutput, WhyFit
 from app.models.inputs import RunForm
 from app.models.opportunity import (
     Candidate,
