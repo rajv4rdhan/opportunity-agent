@@ -28,13 +28,22 @@ async def check_llm() -> tuple[str, str]:
     if not settings.model_fast:
         return BAD, "no MODEL_FAST configured"
     try:
+        headers = (
+            {
+                "x-opencode-session": "scholarswarm-check",
+                "User-Agent": "ScholarSwarm/1.0",
+            }
+            if settings.llm_api_base and "opencode.ai" in settings.llm_api_base
+            else None
+        )
         response = await litellm.acompletion(
             model=settings.model_fast,
             messages=[{"role": "user", "content": "Reply with exactly: OK"}],
-            max_tokens=8,
+            max_tokens=64,
             timeout=60,
             api_base=settings.llm_api_base,
             api_key=settings.llm_api_key,
+            extra_headers=headers,
         )
         text = (response.choices[0].message.content or "").strip()
         return OK, f"{settings.model_fast} → {text[:20]!r}"

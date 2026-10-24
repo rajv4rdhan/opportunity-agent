@@ -43,16 +43,29 @@ def _message_content(user: str, images: list[bytes] | None) -> str | list[dict[s
     return content
 
 
-def _call_kwargs(temperature: float) -> dict[str, Any]:
+def _extra_headers(run_id: str) -> dict[str, str]:
+    """OpenCode Go requires a stable session header and a client user agent."""
+    if not settings.llm_api_base or "opencode.ai" not in settings.llm_api_base:
+        return {}
+    return {
+        "x-opencode-session": f"scholarswarm-{run_id}",
+        "User-Agent": "ScholarSwarm/1.0",
+    }
+
+
+def _call_kwargs(temperature: float, run_id: str) -> dict[str, Any]:
     kwargs: dict[str, Any] = {
         "temperature": temperature,
-        "max_tokens": 4000,
+        "max_tokens": 6000,
         "timeout": 120,
     }
     if settings.llm_api_base:
         kwargs["api_base"] = settings.llm_api_base
     if settings.llm_api_key:
         kwargs["api_key"] = settings.llm_api_key
+    headers = _extra_headers(run_id)
+    if headers:
+        kwargs["extra_headers"] = headers
     return kwargs
 
 
@@ -68,6 +81,11 @@ def _add_cost(run_id: str, completion: Any) -> None:
         cost = float(litellm.completion_cost(completion_response=completion) or 0.0)
     except Exception:  # pragma: no cover - unknown models have no price table
         cost = 0.0
+    if not cost:
+        usage = getattr(completion, "usage", None)
+        opencode = getattr(usage, "opencode", None) if usage is not None else None
+        if isinstance(opencode, dict):
+            cost = float(opencode.get("list_cost") or 0.0)
     bump(run_id, llm_calls=1, est_cost_usd=cost)
 
 
@@ -88,7 +106,7 @@ async def call_llm(
     ]
     first_call = ctx.run_id not in _llm_started
     _llm_started.add(ctx.run_id)
-    kwargs = _call_kwargs(temperature)
+    kwargs = _call_kwargs(temperature, ctx.run_id)
 
     async def invoke(model: str) -> Any:
         if first_call:

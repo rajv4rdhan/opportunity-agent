@@ -62,9 +62,9 @@ Fill in `backend/.env`. At minimum:
 
 ```dotenv
 MODEL_SMART=openai/deepseek-v4.1-flash
-MODEL_FAST=openai/muse-spark-1.3
+MODEL_FAST=openai/deepseek-v4.1-flash
 MODEL_FALLBACK=openai/deepseek-v4.1-flash
-LLM_API_BASE=https://opencode.ai/inference/v1
+LLM_API_BASE=https://opencode.ai/inference/go/openai/v1
 LLM_API_KEY=...
 
 TAVILY_API_KEY=...
@@ -72,8 +72,13 @@ KERNEL_API_KEY=...
 # Optional: EXA_API_KEY, FIRECRAWL_API_KEY, JINA_API_KEY, NEO4J_*, LANGFUSE_*
 ```
 
-`LLM_API_BASE` is any OpenAI-compatible endpoint. If you leave it empty, use a native LiteLLM
-model string (`anthropic/...`, `openai/...`, `gemini/...`) and the matching native key.
+`LLM_API_BASE` is any OpenAI-compatible endpoint. For **OpenCode Go**, use
+`https://opencode.ai/inference/go/openai/v1` with the key from your Go subscription: the app
+adds the required `x-opencode-session` header and a client user agent automatically. Muse Spark
+is served on the Responses API, so this app uses DeepSeek V4.1 Flash for both tiers.
+
+If you leave `LLM_API_BASE` empty, use a native LiteLLM model string (`anthropic/...`,
+`openai/...`, `gemini/...`) and the matching native key.
 
 GitHub needs no key: the app uses `GITHUB_TOKEN` from the environment if present, then the
 `gh auth token` login, then unauthenticated requests (60/hour).

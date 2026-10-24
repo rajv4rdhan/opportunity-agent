@@ -69,6 +69,29 @@ async def step(node, state: dict) -> None:
     print(f"  [{node.__name__}] {', '.join(sorted(result)) or 'no changes'}")
     for error in result.get("errors", []):
         print(f"     ! {error.get('agent')}: {error.get('error')}")
+    if result.get("profile"):
+        profile = result["profile"]
+        print(
+            f"     profile: {profile.name} | CGPA {profile.cgpa}/{profile.cgpa_scale:g} | "
+            f"{profile.target_degree or 'degree?'} in {', '.join(profile.target_fields) or 'field?'} | "
+            f"countries: {', '.join(profile.target_countries) or 'any'}"
+        )
+    if "github" in result:
+        github = result["github"]
+        print(f"     github: {'enriched' if github else 'skipped'}")
+    if "plan" in result:
+        print(f"     plan: {len(result['plan'])} queries")
+    if "candidates" in result:
+        print(f"     candidates: {len(result['candidates'])} new")
+    if "opportunities" in result:
+        print(f"     opportunities: {len(result['opportunities'])}")
+    if "gaps" in result:
+        print(f"     gaps: {len(result['gaps'])}")
+    if "top5" in result:
+        for match in result["top5"]:
+            print(f"     #{match.rank} {match.opportunity.name} — {match.opportunity.score:.0f}/100")
+    if result.get("sop_markdown"):
+        print(f"     SOP: {len(result['sop_markdown'].split())} words")
     if state.get("profile") is not None:
         await store.update_run(state["run_id"], student_name=state["profile"].name)
 

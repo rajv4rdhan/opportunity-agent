@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+
+def _list(value: Any) -> list:
+    return value if isinstance(value, list) else []
 
 
 class Project(BaseModel):
@@ -15,6 +19,11 @@ class Project(BaseModel):
     stars: int | None = None
     source: Literal["resume", "github", "form"] = "resume"
 
+    @field_validator("tech", mode="before")
+    @classmethod
+    def _tech_list(cls, value: Any) -> list[str]:
+        return _list(value)
+
 
 class TestScores(BaseModel):
     ielts: float | None = None
@@ -23,6 +32,16 @@ class TestScores(BaseModel):
     duolingo: float | None = None
     gre: float | None = None
     gmat: float | None = None
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def _score_or_none(cls, value: Any) -> float | None:
+        if value in (None, "", "n/a", "na", "none", "not taken", "unknown"):
+            return None
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
 
 
 class StudentProfile(BaseModel):
@@ -51,6 +70,32 @@ class StudentProfile(BaseModel):
     missing_fields: list[str] = Field(default_factory=list)
     notes: str | None = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_lists_and_numbers(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        for key in (
+            "skills",
+            "projects",
+            "achievements",
+            "publications",
+            "target_fields",
+            "target_countries",
+            "other_links",
+            "missing_fields",
+        ):
+            if data.get(key) is None:
+                data[key] = []
+        if data.get("cgpa_scale") in (None, "", 0, "0"):
+            data["cgpa_scale"] = 10.0
+        if data.get("work_experience_years") is None:
+            data["work_experience_years"] = 0
+        for key in ("cgpa", "budget_inr_per_year", "graduation_year"):
+            if data.get(key) in ("", "unknown", "n/a"):
+                data[key] = None
+        return data
+
 
 class GitHubInsights(BaseModel):
     username: str
@@ -62,3 +107,19 @@ class GitHubInsights(BaseModel):
     hidden_gems: list[str] = Field(default_factory=list)
     activity_summary: str = ""
     strength_summary: str = ""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_collections(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        for key in ("public_repos", "followers"):
+            if data.get(key) is None:
+                data[key] = 0
+        for key in ("top_languages",):
+            if data.get(key) is None:
+                data[key] = {}
+        for key in ("notable_repos", "inferred_skills", "hidden_gems"):
+            if data.get(key) is None:
+                data[key] = []
+        return data
