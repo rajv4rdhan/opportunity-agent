@@ -9,10 +9,10 @@ If relevant, fill the Opportunity:
 - name, provider_org, country, kind, degree_levels, fields.
 - funding_type: full, partial, tuition_waiver, stipend, loan or unknown. Put the page's exact wording in funding_text. Only set funding_amount_inr_estimate when the page states an amount and currency.
 - deadline as an ISO date when the page gives a parseable date, plus deadline_text with the page's wording. Set intake when stated.
-- requirements: every stated requirement as a Requirement. Choose the key from: min_gpa, english_test, gre, gmat, nationality, degree_field, work_experience, age, other. Set numeric_value, numeric_scale and test_name when the page gives a threshold, and set met for THIS student to yes, no or unknown with a short evidence string.
+- requirements: the stated requirements as Requirement objects (at most 8, prioritising hard eligibility rules). Choose the key from: min_gpa, english_test, gre, gmat, nationality, degree_field, work_experience, age, other. Set numeric_value, numeric_scale and test_name when the page gives a threshold, and set met for THIS student to yes, no or unknown with a short evidence string.
 - required_documents, how_to_apply (numbered steps), application_url.
 - official_url: the page that actually offers the opportunity.
-- sources: for every factual claim you put in the opportunity, add a Source whose quote is copied VERBATIM from the page. Never paraphrase inside a quote.
+- sources: for every factual claim you put in the opportunity, add a Source whose quote is copied VERBATIM from the page. Never paraphrase inside a quote. Include at most 8 sources, prioritising the deadline, funding, eligibility and application steps.
 - valued_skills: skills or themes the program says it values.
 - verification: always "unverified" (the system sets the real value). confidence: 0-1 based on how complete the page is.
 

@@ -58,9 +58,13 @@ def _top_match_section(report: FinalReport) -> list[str]:
             lines.append("")
         if opportunity.sources:
             lines.append("**Sources:**")
+            grouped: dict[str, list[str]] = {}
             for source in opportunity.sources:
-                quote = f' — "{source.quote}"' if source.quote else ""
-                lines.append(f"- {source.url}{quote}")
+                grouped.setdefault(source.url, []).append(source.quote)
+            for url, quotes in grouped.items():
+                quote = next((item for item in quotes if item), "")
+                extra = f" (+{len(quotes) - 1} more quotes)" if len(quotes) > 1 else ""
+                lines.append(f'- {url}{f" — {quote!r}" if quote else ""}{extra}')
             lines.append("")
         if opportunity.how_to_apply:
             lines.append("**How to apply:**")

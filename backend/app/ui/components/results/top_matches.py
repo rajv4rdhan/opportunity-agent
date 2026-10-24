@@ -64,8 +64,14 @@ def _card(match: TopMatch) -> None:
 
         with ui.row().classes("w-full items-center justify-between"):
             with ui.row().classes("flex-wrap gap-2"):
-                for source in opportunity.sources[:4]:
+                seen_urls: set[str] = set()
+                for source in opportunity.sources:
+                    if source.url in seen_urls:
+                        continue
+                    seen_urls.add(source.url)
                     source_link(source)
+                    if len(seen_urls) >= 4:
+                        break
             ui.button(
                 "Apply",
                 icon="open_in_new",
