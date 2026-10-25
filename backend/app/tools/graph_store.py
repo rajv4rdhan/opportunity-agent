@@ -48,11 +48,20 @@ RETURN o.data_json AS data
 LIMIT 50
 """
 
-EXPORT_STUDENT = "MATCH (s:Student {id:$sid})-[r]-(n) RETURN s, r, n LIMIT 150"
+EXPORT_STUDENT = "MATCH (s:Student {id:$sid})-[r]-(n) RETURN s AS left, r AS relation, n AS right LIMIT 150"
 EXPORT_MATCHED = """
 MATCH (s:Student {id:$sid})-[:MATCHED]->(o:Opportunity)-[r]-(n)
-RETURN o, r, n LIMIT 150
+RETURN o AS left, r AS relation, n AS right LIMIT 150
 """
+EXPORT_PROJECT_SKILLS = """
+MATCH (s:Student {id:$sid})-[:BUILT]->(p:Project)-[r:USES]->(k:Skill)
+RETURN p AS left, r AS relation, k AS right LIMIT 150
+"""
+EXPORT_ORG_COUNTRY = """
+MATCH (s:Student {id:$sid})-[:MATCHED]->(:Opportunity)-[:OFFERED_BY]->(o:Organization)-[r:LOCATED_IN]->(c:Country)
+RETURN o AS left, r AS relation, c AS right LIMIT 50
+"""
+EXPORT_QUERIES = (EXPORT_STUDENT, EXPORT_MATCHED, EXPORT_PROJECT_SKILLS, EXPORT_ORG_COUNTRY)
 
 
 class GraphStore(Protocol):
@@ -322,9 +331,9 @@ class Neo4jStore:
     async def export(self, student_id: str) -> dict:
         nodes: dict[str, dict] = {}
         links: dict[tuple[str, str, str], dict] = {}
-        for query in (EXPORT_STUDENT, EXPORT_MATCHED):
+        for query in EXPORT_QUERIES:
             for record in await self._read(query, sid=student_id):
-                left, relation, right = record.get("s") or record.get("o"), record.get("r"), record.get("n")
+                left, relation, right = record.get("left"), record.get("relation"), record.get("right")
                 if left is None or relation is None or right is None:
                     continue
                 for node in (left, right):
@@ -436,7 +445,15 @@ class MemoryStore:
     async def export(self, student_id: str) -> dict:
         if student_id not in _memory_graph:
             return {"nodes": [], "links": []}
-        view = nx.ego_graph(_memory_graph, student_id, radius=2, undirected=True)
+        view = nx.ego_graph(_memory_graph, student_id, radius=3, undirected=True)
+        # A shared skill can connect two runs; never show another student's data.
+        view.remove_nodes_from(
+            [
+                node
+                for node, data in view.nodes(data=True)
+                if data.get("type") == "Student" and node != student_id
+            ]
+        )
         nodes = [
             {"id": node, "label": data.get("label", node), "type": data.get("type", "Node")}
             for node, data in view.nodes(data=True)
