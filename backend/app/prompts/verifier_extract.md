@@ -14,7 +14,7 @@ If relevant, fill the Opportunity:
 - required_documents, how_to_apply (numbered steps), application_url.
 - official_url: the page that actually offers the opportunity.
 - sources: for every factual claim you put in the opportunity, add a Source whose quote is copied VERBATIM from the page. Never paraphrase inside a quote. Include at most 8 sources, prioritising the deadline, funding, eligibility and application steps.
-- valued_skills: skills or themes the program says it values.
+- valued_skills: 3-6 short canonical skills or themes the program says it values (e.g. Python, robotics, bioinformatics, leadership), not sentences or long phrases.
 - verification: always "unverified" (the system sets the real value). confidence: 0-1 based on how complete the page is.
 
 If this page is an aggregator that links to the official provider, set official_url to that link.

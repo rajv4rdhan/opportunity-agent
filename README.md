@@ -91,6 +91,15 @@ python scripts/check_keys.py
 
 It prints one line per provider and never prints a key. Required providers must be green.
 
+If Neo4j is configured, verify the graph layer with a self-cleaning smoke test:
+
+```bash
+python scripts/smoke_graph.py
+```
+
+It checks the connection/constraints, writes a fictional student and scholarship, reads paths,
+export and recent reuse, then removes its own nodes (`--keep` preserves them).
+
 ### 5. Run
 
 ```bash
@@ -146,7 +155,8 @@ pytest -q
 ```
 
 The suite covers URL normalisation, quote verification, the retry/fallback policy, score and gap
-logic, What-If overrides, state reducers, routing thresholds and the UI event reducer.
+logic, country/field guards, What-If overrides, state reducers, routing thresholds, graph reuse and
+export, browser ownership, LLM chaos recovery, sample-form merging and the UI event reducer.
 
 ---
 
@@ -183,6 +193,7 @@ The UI calls services in-process; the REST API exists for scripts and judges.
 | Neo4j down | In-memory networkx graph | `fallback` event |
 | GitHub rate limit / no GitHub | Unauthenticated retry → skip enrichment | Skipped node |
 | Expired deadline | Excluded from the top 5 | Grey badge |
+| Opportunity tied to a different country | Deterministic country check | Marked `not_eligible`, excluded from top 5 | Missing reason |
 | Crash mid-run | Checkpoint kept; run marked failed | Red event |
 
 Chaos Mode injects each of these once per run so the recovery is visible:
@@ -205,7 +216,7 @@ backend/
 │  ├─ graph/        LangGraph build + supervisor routing
 │  ├─ prompts/      markdown prompts (SYSTEM + USER)
 │  └─ ui/           NiceGUI pages and components
-├─ scripts/         check_keys, make_sample_pdfs, export_diagram, dev mock
+├─ scripts/         check_keys, smoke_graph, make_sample_pdfs, export_diagram, dev mock
 ├─ samples/         four fictional profiles
 └─ tests/
 docs/

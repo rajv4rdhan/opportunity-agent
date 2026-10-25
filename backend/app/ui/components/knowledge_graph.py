@@ -87,7 +87,7 @@ class KnowledgeGraph:
         if view.graph_version == self._version:
             return
         self._version = view.graph_version
-        graph = await open_readonly_store()
+        graph = await open_readonly_store(view.run_id)
         data = await graph.export(view.run_id)
         self.chart.options.clear()
         self.chart.options.update(_options(data))

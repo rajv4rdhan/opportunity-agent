@@ -10,6 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from app.config import settings  # noqa: E402
 from app.models.opportunity import Opportunity, Requirement, Source  # noqa: E402
 from app.models.profile import Project, StudentProfile  # noqa: E402
 from app.tools.graph_store import Neo4jStore  # noqa: E402
@@ -78,6 +79,9 @@ async def cleanup(store: Neo4jStore) -> None:
 
 
 async def main(keep: bool) -> int:
+    if not settings.configured("neo4j"):
+        print("Neo4j is not configured (NEO4J_URI/USERNAME/PASSWORD are empty).", file=sys.stderr)
+        return 2
     store = Neo4jStore()
     try:
         await store.init()

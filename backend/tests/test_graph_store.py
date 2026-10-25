@@ -2,8 +2,11 @@
 
 from datetime import date
 
+from app.core import store
+from app.core.agent import AgentCtx
 from app.models.opportunity import Opportunity, Requirement
 from app.models.profile import Project, StudentProfile
+from app.tools import graph_store
 from app.tools.graph_store import MemoryStore, _memory_graph
 
 
@@ -46,6 +49,24 @@ async def test_export_includes_project_skills_and_organisation_country():
     relation_types = {link["type"] for link in data["links"]}
     assert {"Test Student", "Test Project", "Germany", "Test Scholarship"} <= labels
     assert {"BUILT", "USES", "OFFERED_BY", "LOCATED_IN", "MATCHED"} <= relation_types
+
+
+async def test_graph_chaos_fires_even_when_a_driver_is_already_cached(monkeypatch, tmp_path):
+    monkeypatch.setattr(store, "_initialized", False)
+    monkeypatch.setattr("app.config.settings.data_dir", tmp_path)
+    await store.init_db()
+    monkeypatch.setattr(graph_store, "_neo4j_store", object())
+    monkeypatch.setattr(graph_store, "_memory_runs", set())
+    run_id = "graph-chaos-test"
+    ctx = AgentCtx(run_id=run_id, agent="matcher", chaos={"graph_db_down": True})
+
+    backend = await graph_store.get_graph_store(ctx)
+
+    assert isinstance(backend, MemoryStore)
+    assert run_id in graph_store._memory_runs
+    events = await store.events_after(run_id)
+    assert any(event.type == "chaos_injected" for event in events)
+    assert any(event.type == "fallback" for event in events)
 
 
 async def test_export_does_not_leak_another_student_via_a_shared_skill():

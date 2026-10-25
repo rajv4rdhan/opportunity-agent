@@ -71,7 +71,9 @@ one agent fails. `GraphInterrupt` is re-raised so human-in-the-loop works.
    that says 6.5. Unsupported quotes are dropped and confidence falls by 0.15 each.
 2. **Deterministic matching** — `services/matching.py` recomputes GPA conversion, English/GRE/GMAT
    thresholds and work experience without an LLM, overriding the extractor's guess when data exists.
-   The What-If endpoint reuses the exact same function.
+   It also rejects an opportunity tied to a country outside the student's targets (global/regional
+   programmes and aliases such as `US`/`United States` are handled). The What-If endpoint reuses the
+   exact same function.
 3. **Verification badges** — `verified_official` (academic/government/official funder domain),
    `third_party` (aggregator or other domain), `unverified` (no usable source).
 
@@ -88,6 +90,7 @@ one agent fails. `GraphInterrupt` is re-raised so human-in-the-loop works.
 | Neo4j down | connection error | `MemoryStore` (networkx) | `fallback` event |
 | GitHub rate limit / no GitHub | 403 / no URL | unauthenticated retry → skip enrichment | skipped node |
 | Expired deadline | `date < today` | marked expired, excluded from top 5 | grey badge |
+| Wrong target country | deterministic country check | marked not eligible, excluded from top 5 | missing reason |
 | Crash mid-run | exception | checkpoint retained; run marked failed | red event |
 
 Chaos Mode (`app/core/chaos.py`) injects each failure once per run and records `chaos_injected`
@@ -103,7 +106,9 @@ events, so recovery can be demonstrated rather than described.
 | Neo4j | `NEO4J_URI` | knowledge graph; in-memory networkx if unavailable |
 
 The knowledge graph stores the full `Opportunity` JSON on each `:Opportunity` node, so a later run
-in the same country can reuse already-verified opportunities (`planner` asks for recent ones).
+can reuse already-verified opportunities. Reuse is limited to the requested countries and to
+overlapping fields (programmes with unfilled or explicitly broad fields still pass), which keeps one
+student's MBA results out of another student's bioinformatics run.
 
 ## API and UI
 

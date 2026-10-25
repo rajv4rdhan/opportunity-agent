@@ -184,7 +184,7 @@ async def resume_run(run_id: str, body: ResumeBody) -> dict:
 
 @router.get("/runs/{run_id}/graph")
 async def run_graph(run_id: str) -> dict:
-    graph = await open_readonly_store()
+    graph = await open_readonly_store(run_id)
     return await graph.export(run_id)
 
 

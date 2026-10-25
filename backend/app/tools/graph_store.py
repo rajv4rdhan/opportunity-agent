@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, Protocol
 import networkx as nx
 
 from app.config import settings
-from app.core.chaos import maybe_fail
+from app.core.chaos import ChaosError, maybe_fail
 from app.core.events import emit
 from app.core.utils import slugify
 from app.models.opportunity import Opportunity
@@ -475,20 +475,34 @@ class MemoryStore:
 # --------------------------------------------------------------------------- #
 _neo4j_store: Neo4jStore | None = None
 _neo4j_failed = False
+_memory_runs: set[str] = set()
 
 
 async def get_graph_store(ctx: "AgentCtx") -> GraphStore:
-    """Neo4j with a visible fallback to the in-memory graph."""
+    """Neo4j with a visible per-run fallback to the in-memory graph."""
     global _neo4j_store, _neo4j_failed
+    if ctx.run_id in _memory_runs:
+        return MemoryStore()
+    if ctx.chaos.get("graph_db_down"):
+        # Fire before consulting the cached driver: a previous run in this
+        # process must not hide the injected failure.
+        try:
+            await maybe_fail(ctx.run_id, ctx.chaos, "graph.neo4j")
+        except ChaosError as error:
+            _memory_runs.add(ctx.run_id)
+            await emit(
+                ctx.run_id,
+                "fallback",
+                f"Neo4j unavailable ({error}); using the in-memory graph",
+                ctx.agent,
+                error=str(error),
+            )
+            return MemoryStore()
     if _neo4j_store is not None:
         return _neo4j_store
-    if ctx.chaos.get("graph_db_down"):
-        # Demonstrate the recovery even when Neo4j was never configured.
-        await maybe_fail(ctx.run_id, ctx.chaos, "graph.neo4j")
     if _neo4j_failed or not settings.configured("neo4j"):
         return MemoryStore()
     try:
-        await maybe_fail(ctx.run_id, ctx.chaos, "graph.neo4j")
         candidate = Neo4jStore()
         await candidate.init()
         _neo4j_store = candidate
@@ -505,9 +519,11 @@ async def get_graph_store(ctx: "AgentCtx") -> GraphStore:
         return MemoryStore()
 
 
-async def open_readonly_store() -> GraphStore:
+async def open_readonly_store(run_id: str | None = None) -> GraphStore:
     """Backend selection for the UI/API (no events, no chaos)."""
     global _neo4j_store, _neo4j_failed
+    if run_id is not None and run_id in _memory_runs:
+        return MemoryStore()
     if _neo4j_store is not None:
         return _neo4j_store
     if _neo4j_failed or not settings.configured("neo4j"):
