@@ -65,7 +65,7 @@ def _country_matches(opportunity: Opportunity, profile: StudentProfile) -> bool:
         for country in profile.target_countries
     }
     offered = _countries(opportunity.country)
-    if not offered or offered & GLOBAL_COUNTRIES:
+    if not offered or offered & GLOBAL_COUNTRIES or wanted & GLOBAL_COUNTRIES:
         return True
     return bool(wanted & offered)
 

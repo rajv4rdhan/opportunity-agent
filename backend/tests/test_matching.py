@@ -99,6 +99,11 @@ def test_global_or_aliased_country_stays_eligible():
         matching.evaluate_opportunity(make_opportunity(country="Europe"), profile).eligibility
         == "eligible"
     )
+    any_profile = make_profile(target_countries=["Any"])
+    assert (
+        matching.evaluate_opportunity(make_opportunity(country="United States"), any_profile).eligibility
+        == "eligible"
+    )
 
 
 def test_expired_is_not_eligible():
