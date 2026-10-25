@@ -71,8 +71,10 @@ def _call_kwargs(temperature: float, run_id: str) -> dict[str, Any]:
 
 def _models(tier: Literal["fast", "smart"]) -> list[str]:
     primary = settings.model_smart if tier == "smart" else settings.model_fast
+    # Keep a configured fallback even when it names the same model: a second
+    # attempt is the only recovery when the deployment has no second model.
     ordered = [primary, settings.model_fallback]
-    return list(dict.fromkeys(model for model in ordered if model))
+    return [model for model in ordered if model]
 
 
 def _add_cost(run_id: str, completion: Any) -> None:
