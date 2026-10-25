@@ -6,6 +6,7 @@ from datetime import date
 
 from app.core.agent import AgentCtx, agent
 from app.models.agent_outputs import PlannerOutput
+from app.services.matching import reusable_for_profile
 from app.tools.graph_store import get_graph_store
 
 
@@ -19,7 +20,11 @@ async def planner(state: dict, ctx: AgentCtx) -> dict:
     reused = []
     try:
         graph = await get_graph_store(ctx)
-        reused = await graph.recent_opportunities(profile.target_countries)
+        found = await graph.recent_opportunities(profile.target_countries)
+        reused = [opportunity for opportunity in found if reusable_for_profile(opportunity, profile)]
+        skipped = len(found) - len(reused)
+        if skipped:
+            await ctx.log(f"Skipped {skipped} reused opportunity/opportunities outside this profile's field")
     except Exception as error:  # noqa: BLE001 - knowledge reuse is optional
         await ctx.log(f"Could not reuse graph opportunities: {error}")
     if reused:

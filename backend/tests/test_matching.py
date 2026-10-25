@@ -106,6 +106,18 @@ def test_global_or_aliased_country_stays_eligible():
     )
 
 
+def test_graph_reuse_filters_other_fields_but_keeps_broad_programmes():
+    business = make_opportunity(fields=["Business Administration"], degree_levels=["MBA"])
+    broad = make_opportunity(id="broad", fields=["Various graduate fields"])
+    priya = make_profile(target_degree="MS", target_fields=["Bioinformatics", "Biotechnology"])
+
+    assert matching.reusable_for_profile(business, priya) is False
+    assert matching.reusable_for_profile(broad, priya) is True
+    assert matching.reusable_for_profile(
+        make_opportunity(fields=["Bioinformatics"]), priya
+    ) is True
+
+
 def test_expired_is_not_eligible():
     opportunity = matching.evaluate_opportunity(
         make_opportunity(is_expired=True), make_profile()

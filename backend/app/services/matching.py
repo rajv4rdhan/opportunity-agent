@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import date, datetime, timezone
 
 from app.core import store
@@ -46,6 +47,17 @@ GLOBAL_COUNTRIES = {
     "middle east",
     "oceania",
 }
+BROAD_FIELDS = (
+    "various",
+    "all field",
+    "all discipline",
+    "any field",
+    "any discipline",
+    "multiple field",
+    "general",
+    "interdisciplinary",
+)
+FIELD_STOPWORDS = {"and", "for", "the", "of", "in", "with", "all", "any", "field", "fields", "studies", "study"}
 
 
 def _countries(value: str | None) -> set[str]:
@@ -68,6 +80,31 @@ def _country_matches(opportunity: Opportunity, profile: StudentProfile) -> bool:
     if not offered or offered & GLOBAL_COUNTRIES or wanted & GLOBAL_COUNTRIES:
         return True
     return bool(wanted & offered)
+
+
+def _field_tokens(values: list[str]) -> set[str]:
+    tokens: set[str] = set()
+    for value in values:
+        for token in re.findall(r"[a-z]{3,}", value.casefold()):
+            if token not in FIELD_STOPWORDS:
+                tokens.add(token)
+    return tokens
+
+
+def _fields_overlap(target_fields: list[str], opportunity_fields: list[str]) -> bool:
+    if not target_fields or not opportunity_fields:
+        return True
+    text = " ".join(opportunity_fields).casefold()
+    if any(marker in text for marker in BROAD_FIELDS):
+        return True
+    return bool(_field_tokens(target_fields) & _field_tokens(opportunity_fields))
+
+
+def reusable_for_profile(opportunity: Opportunity, profile: StudentProfile) -> bool:
+    """Keep graph reuse useful: same country and an overlapping field of study."""
+    return _country_matches(opportunity, profile) and _fields_overlap(
+        profile.target_fields, opportunity.fields
+    )
 
 
 def _test_key(requirement: Requirement) -> str | None:
