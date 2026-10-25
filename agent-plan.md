@@ -5,11 +5,11 @@
 > Anything that needs a human (API keys, accounts, PDFs, decisions) is in `human-plan.md`.
 > If a required value is missing, **STOP and ask the human**, quoting the exact item from `human-plan.md`.
 
-> **Build status (2026-10-24):** phases 1–9 are implemented, tested and committed. A real run
-> completed with **10 verified opportunities**, top 5 and a **946-word SOP** in 718 s for
-> **$0.099** of OpenCode Go usage. The only open item is the **Neo4j Aura URI/credentials**.
-> See **`STATUS.md`** for verified results, current configuration, tomorrow's TODO and exact
-> commands.
+> **Build status (2026-10-25):** phases 1–9 are implemented, tested and committed. All four
+> sample profiles now have real-model runs, Neo4j works, and **54 tests pass**. The Rahul run
+> (2026-10-24) produced 10 verified opportunities and a 946-word SOP; the 2026-10-25 Arjun, Meera
+> and Priya runs produced 12–13 opportunities each with sensible top 5s. See **`STATUS.md`** for
+> verified results, current configuration and exact commands.
 
 ---
 
@@ -112,6 +112,7 @@ tetra-hackathon/
 │  │  └─ meera/   ...
 │  ├─ scripts/
 │  │  ├─ check_keys.py           # verifies every key works
+│  │  ├─ smoke_graph.py          # self-cleaning Neo4j end-to-end check
 │  │  ├─ make_sample_pdfs.py     # generates fictional sample PDFs
 │  │  └─ export_diagram.py       # writes docs/agents.mmd
 │  ├─ app/
@@ -1128,10 +1129,9 @@ Use `respx` to mock HTTP; set `MODEL_*` to a dummy and monkeypatch `call_llm` in
 | **8. Hardening** | Run all 4 samples via UI. Run each chaos flag. Fix any crash. Make sure a run with Neo4j down still finishes (MemoryStore). Make sure no-GitHub profile skips enrichment cleanly. Make sure interrupt → resume works. | All 4 profiles produce results without code changes; all chaos flags recover. |
 | **9. Docs** | `README.md` (what, architecture, setup, run, env vars, demo steps), `docs/architecture.md` (mermaid below + agent table + failure-handling table), `docs/notes.md` draft (most interesting experiment, biggest challenge — leave `[HUMAN: …]` placeholders for personal opinions). | Human reviews. |
 
-**Status (2026-10-24):** phases 0–9 are done; see `STATUS.md`. Phase 3's Neo4j line is the only
-non-green check (the Aura host no longer resolves; the app uses the in-memory fallback). Real-LLM
-runs exist for `rahul`; `priya`, `arjun` and `meera` have structural (mock-LLM) runs and should be
-re-run with the live model tomorrow.
+**Status (2026-10-25):** phases 0–9 are done; see `STATUS.md`. Every required provider check is
+green, including Neo4j. Real-LLM runs now exist for all four sample profiles; the three 2026-10-25
+runs also exercised interrupt/resume, GitHub enrichment and the country/field guards.
 
 Commit after each phase: `git add -A && git commit -m "phase N: <summary>"` (never commit `.env`).
 
@@ -1193,12 +1193,12 @@ Failure-handling table to include in docs:
   - Live browser clears when the run ends (Kernel session closed); without Neo4j the graph is in-process only.
 - [x] Each chaos flag produces a visible failure + recovery and the run still finishes.
   - All five flags fired once and recovered (real search/fetch, mock extraction).
-- [ ] All 4 sample profiles work with zero code changes.
-  - `rahul` verified with the real model; `priya`, `arjun`, `meera` passed structurally with the mock LLM. Re-run them with the live model (see `STATUS.md`).
+- [x] All 4 sample profiles work with zero code changes.
+  - Real-model runs: `rahul` (10 opportunities), `arjun` (12), `meera` (13), `priya` (13). Top 5s match MBA, robotics/EE PhD and bioinformatics respectively.
 - [x] Interrupt/resume works.
-  - Tested with `priya` via API and the UI Skip button, including resume after a restart.
+  - Tested with `priya` via API in the 2026-10-25 live run, plus the UI Skip button and a resume after process restart earlier.
 - [x] `pytest -q` passes.
-  - 39 passed.
+  - 54 passed.
 - [x] README + docs/architecture.md + docs/notes.md written.
 - [x] No secrets committed (`git grep -i "api_key=" -- ':!*.example'` returns nothing sensitive).
 
@@ -1212,3 +1212,4 @@ Failure-handling table to include in docs:
 | Date | Milestone |
 |---|---|
 | 2026-10-24 | Phases 1–9 implemented and committed. Real `rahul` run: 10 verified, top 5, 946-word SOP, 13 critic notes, 718 s, $0.099. UI, chaos, interrupt/resume and 39 tests verified. Remaining: fix the Neo4j Aura URI/credentials, then re-run the other three samples with the live model. |
+| 2026-10-25 | Neo4j fixed and smoke-tested. Real runs for `arjun` (12 opportunities, 822-word SOP), `meera` (13, 1,072 words) and `priya` (13, 802 words, interrupt/resume). Added country/field guards, per-run graph chaos fallback and 15 regression tests; 54 tests pass. Top-source quote check 15/15. |

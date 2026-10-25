@@ -4,9 +4,9 @@
 > This file lists everything only you can do, in order. Do sections 1–4 **before** telling the agent to start.
 > Estimated time: about 60–90 minutes.
 
-> **Status (2026-10-24):** the build is complete and committed. See `STATUS.md`. The only open
-> human action is fixing the **Neo4j Aura URI/credentials** (the host currently does not resolve;
-> the app falls back to the in-memory graph). Everything else in the checkpoints below is done.
+> **Status (2026-10-25):** the build is complete and committed. See `STATUS.md`. Neo4j now works
+> and all four sample profiles have real-model runs. Remaining human actions are the demo recording,
+> public GitHub push and rewriting `docs/notes.md` in your own words.
 
 ---
 
@@ -179,10 +179,10 @@ Open the project folder `D:\cdownlode\tetra-hackathon` in Claude Code (or your c
 | 8 | Adaptability | Run the **priya / arjun / meera** samples. Results must make sense for each (e.g. Arjun gets MBA options, not CS) |
 | 8 | Failure handling | Turn on each Chaos switch and confirm amber "fallback" events appear and the run still finishes |
 
-**Progress (2026-10-24):** 1 ✅ · 3 ✅ except Neo4j ❌ (stale Aura host) · 5 ✅ (real run: 10 verified,
-top 5, 946-word SOP) · 7 ✅ (UI + results verified in Chromium) · 8 ✅ chaos and interrupt/resume;
-`arjun`/`priya`/`meera` passed structurally with the mock LLM but should be re-run with the live
-model. Details and the Neo4j fix are in `STATUS.md`.
+**Progress (2026-10-25):** 1 ✅ · 3 ✅ every required provider, including Neo4j · 5 ✅ (real Rahul
+run: 10 verified, top 5, 946-word SOP) · 7 ✅ (UI + results verified in Chromium) · 8 ✅ all four
+profiles have real-model runs: Arjun (MBA, UK/Australia), Meera (robotics/EE PhD, USA), Priya
+(bioinformatics, interrupt/resume). Chaos recovery and 54 tests pass. Details are in `STATUS.md`.
 
 ### Running the app yourself (1 terminal)
 
