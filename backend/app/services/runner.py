@@ -6,6 +6,7 @@ import asyncio
 import json
 import shutil
 import time
+from collections.abc import Awaitable
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -21,6 +22,7 @@ from app.core import http
 
 _graph: Any = None
 _saver_context: Any = None
+_tasks: set[asyncio.Task] = set()
 
 
 def _initial_state(run_id: str, inputs: dict, chaos: dict) -> dict:
@@ -82,6 +84,41 @@ def _copy_upload(source: Path | None, destination: Path) -> Path | None:
     return destination
 
 
+SAMPLE_FIELDS = (
+    "github_url",
+    "linkedin_url",
+    "other_links",
+    "target_countries",
+    "target_degree",
+    "target_fields",
+    "nationality",
+    "budget_inr_per_year",
+    "notes",
+)
+
+
+def merge_sample_form(form: RunForm, sample_data: dict) -> RunForm:
+    """Use the sample form for anything the caller left blank, never overriding input."""
+    merged = RunForm(**sample_data)
+    for field in SAMPLE_FIELDS:
+        value = getattr(form, field)
+        if value not in (None, "", []):
+            setattr(merged, field, value)
+    for key, value in form.test_scores.model_dump().items():
+        if value is not None:
+            setattr(merged.test_scores, key, value)
+    merged.sample = form.sample
+    merged.chaos = form.chaos or merged.chaos
+    return merged
+
+
+def _background(coro: Awaitable[None]) -> None:
+    """Keep a strong reference so the event loop cannot garbage-collect the run."""
+    task = asyncio.create_task(coro)
+    _tasks.add(task)
+    task.add_done_callback(_tasks.discard)
+
+
 async def create_run(
     form: RunForm,
     resume: Path | None,
@@ -95,16 +132,13 @@ async def create_run(
 
     if form.sample:
         folder = _sample_folder(form.sample)
+        sample_form = folder / "form.json"
+        if sample_form.exists():
+            form = merge_sample_form(form, json.loads(sample_form.read_text()))
         if resume_path is None and (folder / "resume.pdf").exists():
             resume_path = folder / "resume.pdf"
         if transcript_path is None and (folder / "transcript.pdf").exists():
             transcript_path = folder / "transcript.pdf"
-        if not (form.github_url or form.target_countries or form.target_degree):
-            sample_form = folder / "form.json"
-            if sample_form.exists():
-                merged = RunForm(**json.loads(sample_form.read_text()))
-                merged.chaos = form.chaos or merged.chaos
-                form = merged
 
     if resume_path is None:
         raise ValueError("A resume PDF or a sample profile is required")
@@ -120,7 +154,7 @@ async def create_run(
 
 
 def start_run(run_id: str, inputs: dict, chaos: dict) -> None:
-    asyncio.create_task(_execute(run_id, _initial_state(run_id, inputs, chaos)))
+    _background(_execute(run_id, _initial_state(run_id, inputs, chaos)))
 
 
 def _config(run_id: str) -> dict:
@@ -199,7 +233,7 @@ async def resume_run(run_id: str, answers: dict) -> None:
     payload = dict(answers or {})
     if not payload:
         payload = {"__skip__": True}
-    asyncio.create_task(_resume(run_id, payload))
+    _background(_resume(run_id, payload))
 
 
 async def _resume(run_id: str, answers: dict) -> None:

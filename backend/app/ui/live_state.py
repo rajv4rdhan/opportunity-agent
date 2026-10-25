@@ -82,7 +82,7 @@ def reduce_event(view: RunView, event: Event) -> set[str]:
     elif kind == "fallback":
         view.stats.fallbacks += 1
         dirty |= {"stats"}
-    elif kind in {"tool_error", "run_failed"}:
+    elif kind == "tool_error":
         view.stats.errors += 1
         dirty |= {"stats"}
     elif kind == "run_finished":
@@ -96,6 +96,7 @@ def reduce_event(view: RunView, event: Event) -> set[str]:
         view.finished = True
         view.status = "failed"
         view.live_view_url = None
+        view.stats.errors += 1
         dirty |= {"flow", "stats", "results", "browser"}
     elif kind == "interrupt":
         view.interrupt = event.data

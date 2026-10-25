@@ -120,8 +120,10 @@ async def close_browser(run_id: str) -> None:
         if session.kernel is not None and session.session_id:
             await session.kernel.browsers.delete_by_id(session.session_id)
             await session.kernel.close()
-        elif session.browser is not None:
-            await session.browser.close()
+            if session.browser is not None:
+                await session.browser.close()
+        # The local Chromium instance is shared by every run in this process;
+        # close_all() owns it, so do not shut it down when one run finishes.
     except Exception:  # noqa: BLE001 - cleanup must not fail a run
         pass
     finally:

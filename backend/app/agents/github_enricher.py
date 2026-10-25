@@ -26,23 +26,29 @@ def _username(profile) -> str | None:
 
 
 def _merge_into_profile(profile, insights: GitHubInsights, repos: dict[str, dict], languages: dict[str, dict]):
-    profile.skills = list(dict.fromkeys([*profile.skills, *insights.inferred_skills]))
-    existing = {project.name.lower() for project in profile.projects}
-    for name in insights.hidden_gems:
-        repo = repos.get(name)
-        if repo is None or name.lower() in existing:
+    skills = {skill.casefold() for skill in profile.skills}
+    for skill in insights.inferred_skills:
+        if skill and skill.casefold() not in skills:
+            profile.skills.append(skill)
+            skills.add(skill.casefold())
+
+    repos_by_name = {name.casefold(): repo for name, repo in repos.items()}
+    existing = {project.name.casefold() for project in profile.projects}
+    for gem in insights.hidden_gems:
+        repo = repos.get(gem) or repos_by_name.get(gem.casefold())
+        if repo is None or repo["name"].casefold() in existing:
             continue
         profile.projects.append(
             Project(
                 name=repo["name"],
                 description=repo.get("description") or "",
-                tech=sorted(languages.get(name, {}).keys()),
+                tech=sorted(languages.get(repo["name"], {}).keys()),
                 url=repo.get("html_url"),
                 stars=repo.get("stargazers_count"),
                 source="github",
             )
         )
-        existing.add(name.lower())
+        existing.add(repo["name"].casefold())
     return profile
 
 

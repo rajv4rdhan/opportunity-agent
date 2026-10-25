@@ -14,6 +14,7 @@ class InterruptDialog:
         self.dialog = ui.dialog()
         self._payload: dict | None = None
         self._is_open = False
+        self._awaiting_resume = False
         self.inputs: dict[str, object] = {}
 
     def _widget(self, question: dict):
@@ -35,6 +36,11 @@ class InterruptDialog:
         payload = view.interrupt
         if not payload:
             self._is_open = False
+            self._awaiting_resume = False
+            return
+        # Do not reopen while the resume request is in flight: the view keeps
+        # the old interrupt until the "resumed" event is persisted.
+        if self._awaiting_resume:
             return
         if self._is_open and payload == self._payload:
             return
@@ -58,17 +64,23 @@ class InterruptDialog:
         self._is_open = True
         self.dialog.open()
 
+    async def _resume(self, answers: dict) -> None:
+        self._awaiting_resume = True
+        self.dialog.close()
+        self._is_open = False
+        try:
+            await resume_run(self.run_id, answers)
+        except Exception as error:  # noqa: BLE001 - show the failure instead of looping
+            self._awaiting_resume = False
+            ui.notify(f"Could not resume the run: {error}", type="negative")
+
     async def _submit(self) -> None:
         answers = {
             field: widget.value
             for field, widget in self.inputs.items()
             if widget.value not in (None, "", [])
         }
-        await resume_run(self.run_id, answers)
-        self.dialog.close()
-        self._is_open = False
+        await self._resume(answers)
 
     async def _skip(self) -> None:
-        await resume_run(self.run_id, {})
-        self.dialog.close()
-        self._is_open = False
+        await self._resume({})
