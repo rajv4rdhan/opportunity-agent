@@ -62,6 +62,10 @@ def agent(name: str) -> Callable[[AgentFn], Callable[[dict], Awaitable[dict]]]:
                 return {"errors": [{"agent": name, "error": str(error)}]}
 
             duration = round(time.perf_counter() - started, 2)
+            extra = {}
+            profile = result.get("profile")
+            if profile is not None and getattr(profile, "name", None):
+                extra["student_name"] = profile.name
             await emit(
                 ctx.run_id,
                 "agent_finished",
@@ -69,6 +73,7 @@ def agent(name: str) -> Callable[[AgentFn], Callable[[dict], Awaitable[dict]]]:
                 name,
                 duration_sec=duration,
                 updated=sorted(result.keys()),
+                **extra,
             )
             return result
 

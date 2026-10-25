@@ -174,12 +174,19 @@ def _interrupt_payload(interrupts: Any) -> dict:
 
 
 async def _stream(graph: Any, run_id: str, payload: Any, config: dict) -> str:
+    student_name: str | None = None
     async for chunk in graph.astream(payload, config=config, stream_mode="updates"):
         if "__interrupt__" in chunk:
             interrupt = _interrupt_payload(chunk["__interrupt__"])
             await store.update_run(run_id, status="waiting_input", pending_json=interrupt)
             await emit(run_id, "interrupt", "Waiting for your input", data=interrupt)
             return "interrupted"
+        for update in chunk.values():
+            profile = update.get("profile") if isinstance(update, dict) else None
+            name = getattr(profile, "name", None)
+            if name and name != student_name:
+                student_name = name
+                await store.update_run(run_id, student_name=name)
     return "done"
 
 

@@ -64,9 +64,10 @@ async def run_detail_page(run_id: str) -> None:
     def refresh_header() -> None:
         header.clear()
         with header:
-            ui.label((view.report.profile.name if view.report else run.get("student_name")) or "Student").classes(
-                "text-xl font-semibold"
-            )
+            ui.label(
+                (view.report.profile.name if view.report else view.student_name or run.get("student_name"))
+                or "Student"
+            ).classes("text-xl font-semibold")
             status_badge(view.status)
             ui.label(f"run {run_id}").classes("text-xs text-gray-400")
             ui.button("History", icon="history", on_click=lambda: ui.navigate.to("/runs")).props("flat dense")

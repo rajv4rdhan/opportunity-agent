@@ -30,6 +30,12 @@ def test_agent_status_and_verifier_counters():
     assert view.stats.agents_run == 1
 
 
+def test_profile_name_reaches_the_header():
+    view = RunView("run1")
+    reduce_event(view, event(1, "agent_finished", "profile_analyst", student_name="Test Student"))
+    assert view.student_name == "Test Student"
+
+
 def test_interrupt_and_resume():
     view = RunView("run1")
     payload = {"questions": [{"field": "nationality", "question": "Nationality?", "type": "text"}]}

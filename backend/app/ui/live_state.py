@@ -28,6 +28,7 @@ class RunView:
     graph_version: int = 0
     finished: bool = False
     report: FinalReport | None = None
+    student_name: str | None = None
     started_at: datetime | None = None
 
 
@@ -54,9 +55,11 @@ def reduce_event(view: RunView, event: Event) -> set[str]:
         dirty |= {"flow", "stats"}
     elif kind == "agent_finished":
         view.agent_status[agent] = "done"
+        if event.data.get("student_name"):
+            view.student_name = str(event.data["student_name"])
         if agent == "verifier":
             view.verifiers_done += 1
-        dirty |= {"flow"}
+        dirty |= {"flow", "header"}
     elif kind == "agent_failed":
         view.agent_status[agent] = "failed"
         view.stats.errors += 1
