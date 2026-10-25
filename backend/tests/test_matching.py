@@ -76,6 +76,27 @@ def test_nationality_failure_is_not_eligible():
     assert opportunity.eligibility == "not_eligible"
 
 
+def test_wrong_country_is_not_eligible():
+    profile = make_profile(target_countries=["United Kingdom", "Australia"])
+    opportunity = matching.evaluate_opportunity(
+        make_opportunity(country="United States"), profile
+    )
+    assert opportunity.eligibility == "not_eligible"
+    assert "outside your target countries" in opportunity.missing[0]
+
+
+def test_global_or_aliased_country_stays_eligible():
+    profile = make_profile(target_countries=["UK"])
+    assert (
+        matching.evaluate_opportunity(make_opportunity(country="United Kingdom"), profile).eligibility
+        == "eligible"
+    )
+    assert (
+        matching.evaluate_opportunity(make_opportunity(country="Global"), profile).eligibility
+        == "eligible"
+    )
+
+
 def test_expired_is_not_eligible():
     opportunity = matching.evaluate_opportunity(
         make_opportunity(is_expired=True), make_profile()

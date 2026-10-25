@@ -15,6 +15,41 @@ FUNDING_POINTS = {"full": 25, "stipend": 20, "tuition_waiver": 18, "partial": 12
 TRUST_MULTIPLIER = {"verified_official": 1.0, "third_party": 0.8, "unverified": 0.5}
 OBTAINABLE_KEYS = {"english_test", "gre", "gmat"}
 TEST_KEYS = ("ielts", "toefl", "pte", "duolingo", "gre", "gmat")
+COUNTRY_ALIASES = {
+    "us": "united states",
+    "usa": "united states",
+    "u.s.": "united states",
+    "united states of america": "united states",
+    "uk": "united kingdom",
+    "great britain": "united kingdom",
+    "england": "united kingdom",
+    "south korea": "south korea",
+    "korea": "south korea",
+    "uae": "united arab emirates",
+}
+GLOBAL_COUNTRIES = {"global", "worldwide", "international", "online", "remote", "any", "multiple"}
+
+
+def _countries(value: str | None) -> set[str]:
+    text = (value or "").casefold().strip()
+    if not text:
+        return set()
+    normalized = COUNTRY_ALIASES.get(text, text)
+    return {part.strip() for part in normalized.replace(";", ",").replace("|", ",").split(",") if part.strip()}
+
+
+def _country_matches(opportunity: Opportunity, profile: StudentProfile) -> bool:
+    """False only when both sides name countries and none overlap."""
+    if not profile.target_countries or not opportunity.country:
+        return True
+    wanted = {
+        COUNTRY_ALIASES.get(country.casefold().strip(), country.casefold().strip())
+        for country in profile.target_countries
+    }
+    offered = _countries(opportunity.country)
+    if not offered or offered & GLOBAL_COUNTRIES:
+        return True
+    return bool(wanted & offered)
 
 
 def _test_key(requirement: Requirement) -> str | None:
@@ -92,11 +127,14 @@ def evaluate_opportunity(
     updated.requirements = [evaluate_requirement(req, profile) for req in opportunity.requirements]
     rejected = [req for req in updated.requirements if req.met == "no"]
 
+    country_mismatch = not opportunity.is_expired and not _country_matches(opportunity, profile)
     if opportunity.is_expired:
         updated.eligibility = "not_eligible"
         updated.missing = ["Deadline has passed"]
     else:
-        if any(req.key in {"nationality", "degree_field"} for req in rejected):
+        if country_mismatch:
+            updated.eligibility = "not_eligible"
+        elif any(req.key in {"nationality", "degree_field"} for req in rejected):
             updated.eligibility = "not_eligible"
         elif not rejected:
             updated.eligibility = "eligible"
@@ -104,7 +142,12 @@ def evaluate_opportunity(
             updated.eligibility = "partial"
         else:
             updated.eligibility = "not_eligible"
-        updated.missing = [req.description for req in updated.requirements if req.met in {"no", "unknown"}]
+        requirements_missing = [req.description for req in updated.requirements if req.met in {"no", "unknown"}]
+        updated.missing = (
+            [f"Located in {opportunity.country}, outside your target countries"]
+            if country_mismatch
+            else []
+        ) + requirements_missing
 
     overlap = _skill_overlap(opportunity, profile)
     reasons: list[str] = []
