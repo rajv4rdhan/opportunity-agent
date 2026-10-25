@@ -7,7 +7,7 @@ If the student named target countries, also set is_relevant=false when the oppor
 
 If relevant, fill the Opportunity:
 - id: a short slug based on name and provider.
-- name, provider_org, country, kind, degree_levels, fields.
+- name, provider_org, country, kind, degree_levels, fields. `country` is where the student would study, not the provider's headquarters; use null for worldwide/remote programs.
 - funding_type: full, partial, tuition_waiver, stipend, loan or unknown. Put the page's exact wording in funding_text. Only set funding_amount_inr_estimate when the page states an amount and currency.
 - deadline as an ISO date when the page gives a parseable date, plus deadline_text with the page's wording. Set intake when stated.
 - requirements: the stated requirements as Requirement objects (at most 8, prioritising hard eligibility rules). Choose the key from: min_gpa, english_test, gre, gmat, nationality, degree_field, work_experience, age, other. Set numeric_value, numeric_scale and test_name when the page gives a threshold, and set met for THIS student to yes, no or unknown with a short evidence string.

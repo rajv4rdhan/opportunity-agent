@@ -27,7 +27,25 @@ COUNTRY_ALIASES = {
     "korea": "south korea",
     "uae": "united arab emirates",
 }
-GLOBAL_COUNTRIES = {"global", "worldwide", "international", "online", "remote", "any", "multiple"}
+GLOBAL_COUNTRIES = {
+    "global",
+    "worldwide",
+    "international",
+    "online",
+    "remote",
+    "any",
+    "multiple",
+    "europe",
+    "european union",
+    "eu",
+    "asia",
+    "africa",
+    "north america",
+    "south america",
+    "latin america",
+    "middle east",
+    "oceania",
+}
 
 
 def _countries(value: str | None) -> set[str]:
