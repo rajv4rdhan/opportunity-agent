@@ -19,7 +19,7 @@ export function VoiceButton({
   onFinal: (text: string) => void
   onInterimChange?: (text: string) => void
   onListeningChange?: (listening: boolean) => void
-  size?: 'sm' | 'lg'
+  size?: 'sm' | 'lg' | 'device'
   className?: string
 }) {
   const { supported, listening, interim, error, start, stop } = useSpeechRecognition({
@@ -40,6 +40,7 @@ export function VoiceButton({
   }, [listening, onListeningChange])
 
   const large = size === 'lg'
+  const device = size === 'device'
 
   if (!supported) {
     return (
@@ -52,7 +53,14 @@ export function VoiceButton({
               size="icon"
               disabled
               aria-label="Voice input unavailable"
-              className={cn(large ? 'size-14 rounded-full bg-subtle text-muted' : 'size-8 rounded-full text-muted', className)}
+              className={cn(
+                device
+                  ? 'ss-key-ink size-11 rounded-full'
+                  : large
+                    ? 'size-14 rounded-full bg-subtle text-muted'
+                    : 'size-8 rounded-full text-muted',
+                className,
+              )}
             >
               <MicOff className={large ? 'size-6' : 'size-4'} strokeWidth={1.75} />
             </Button>
@@ -74,7 +82,9 @@ export function VoiceButton({
           aria-label={listening ? 'Stop voice input' : 'Speak'}
           className={cn(
             'relative rounded-full transition-all duration-300',
-            large
+            device
+              ? cn('ss-key-ink size-11', listening && 'ring-4 ring-white/70')
+              : large
               ? listening
                 ? 'size-14 bg-accent text-on-accent hover:bg-accent'
                 : 'size-14 bg-accent text-on-accent shadow-[var(--shadow-lift)] hover:-translate-y-0.5 hover:bg-accent'

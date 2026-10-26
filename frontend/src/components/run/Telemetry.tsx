@@ -12,6 +12,7 @@ function Value({ value }: { value: number }) {
 export function Telemetry({ state }: { state: RunState }) {
   const verified = Object.values(state.workers).filter((worker) => worker.state === 'verified').length
   const recoveries = state.stats.retries + state.stats.fallbacks
+  const tints = ['var(--ss-pink)', 'var(--ss-sky)', 'var(--ss-lilac)', 'var(--ss-mint)', 'var(--ss-peach)', 'var(--ss-sky)']
   const items: Array<{ label: string; value: number | string; tone?: 'warn' | 'accent' }> = [
     { label: 'LLM calls', value: state.stats.llmCalls },
     { label: 'Pages read', value: state.stats.pagesRead },
@@ -31,8 +32,9 @@ export function Telemetry({ state }: { state: RunState }) {
         <div
           key={item.label}
           data-testid="kpi"
+          style={{ ['--tint' as string]: tints[index] }}
           className={cn(
-            'min-w-0 px-4 py-3',
+            'ss-tint min-w-0 px-4 py-3',
             index % 3 !== 0 && 'border-l border-line',
             index >= 3 && 'border-t border-line',
           )}
@@ -43,7 +45,7 @@ export function Telemetry({ state }: { state: RunState }) {
           <p
             data-testid="kpi-value"
             className={cn(
-              'mt-0.5 text-[22px] leading-7 font-semibold tracking-[-0.02em] tabular-nums',
+              'mt-0.5 font-display text-[24px] leading-7 font-semibold tracking-[-0.02em] tabular-nums',
               item.tone === 'warn' ? 'text-warn' : item.tone === 'accent' ? 'text-accent' : 'text-ink',
             )}
           >

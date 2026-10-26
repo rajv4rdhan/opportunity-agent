@@ -199,10 +199,10 @@ export function ActivityPanel({
 }
 
 const BUBBLE: Record<string, string> = {
-  warn: 'bg-warn-soft text-ink',
-  err: 'bg-err-soft text-ink',
-  decision: 'bg-accent-soft text-ink',
-  ok: 'bg-ok-soft text-ink',
+  warn: 'bg-peach text-ink',
+  err: 'bg-pink text-ink',
+  decision: 'bg-sky text-ink',
+  ok: 'bg-mint text-ink',
 }
 
 function ActivityRow({

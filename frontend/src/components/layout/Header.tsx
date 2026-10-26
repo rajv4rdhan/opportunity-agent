@@ -9,14 +9,18 @@ import { applyTheme, cycleTheme, readStoredTheme, storeTheme, themeLabel, type T
 import { Container } from './Container'
 import { LogoMark } from './LogoMark'
 
-const NAV = [
-  { href: '/', label: 'New search' },
-  { href: '/runs', label: 'History' },
+/** Centre links jump to sections of the landing page. */
+const SECTIONS = [
+  { href: '/#how', label: 'How it works' },
+  { href: '/#samples', label: 'Samples' },
+  { href: '/#agents', label: 'Agents' },
+  { href: '/#faq', label: 'FAQ' },
 ]
 
 export function Header() {
   const location = useLocation()
   const [mode, setMode] = useState<ThemeMode>(() => readStoredTheme())
+  const onHistory = location.pathname.startsWith('/runs')
 
   function toggleTheme() {
     const next = cycleTheme(mode)
@@ -28,35 +32,28 @@ export function Header() {
   const ThemeIcon = mode === 'light' ? Sun : mode === 'dark' ? Moon : Monitor
 
   return (
-    <header className="sticky top-0 z-40 h-16 border-b border-line bg-surface/90 backdrop-blur">
-      <Container className="flex h-full items-center justify-between">
-        <Link to="/" className="group flex items-center gap-2.5 text-ink" aria-label="ScholarSwarm home">
-          <span className="flex size-8 items-center justify-center rounded-[8px] bg-accent text-on-accent transition-transform duration-300 group-hover:-rotate-6">
+    <header className="sticky top-0 z-40 h-16 border-b border-line/70 bg-surface/90 backdrop-blur">
+      <Container className="grid h-full grid-cols-[1fr_auto_1fr] items-center">
+        <Link to="/" className="group flex w-fit items-center gap-2 text-ink" aria-label="ScholarSwarm home">
+          <span className="flex size-8 items-center justify-center rounded-[10px] bg-accent text-on-accent transition-transform duration-300 group-hover:-rotate-12">
             <LogoMark className="size-[18px]" />
           </span>
-          <span className="text-[16px] font-semibold tracking-[-0.02em]">ScholarSwarm</span>
+          <span className="font-display text-[19px] font-semibold tracking-[-0.03em]">scholarswarm</span>
         </Link>
 
-        <nav className="flex items-center gap-1">
-          {NAV.map((item) => {
-            const active =
-              item.href === '/' ? location.pathname === '/' : location.pathname.startsWith(item.href)
-            return (
-              <Button
-                key={item.href}
-                asChild
-                variant="ghost"
-                className={cn(
-                  'h-8 px-3 text-sm text-muted hover:bg-subtle hover:text-ink',
-                  item.href === '/' && 'hidden sm:inline-flex',
-                  active && 'bg-subtle text-ink',
-                )}
-              >
-                <Link to={item.href}>{item.label}</Link>
-              </Button>
-            )
-          })}
+        <nav aria-label="Sections" className="hidden items-center gap-1 md:flex">
+          {SECTIONS.map((item) => (
+            <Link
+              key={item.href}
+              to={item.href}
+              className="rounded-full px-3 py-1.5 text-[13px] text-muted transition-colors hover:bg-subtle hover:text-ink"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
 
+        <div className="flex items-center justify-end gap-1.5">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -64,14 +61,24 @@ export function Header() {
                 size="icon"
                 onClick={toggleTheme}
                 aria-label={`Theme: ${themeLabel(mode)}`}
-                className="ml-1 size-8 text-muted hover:bg-subtle hover:text-ink"
+                className="size-8 text-muted hover:bg-subtle hover:text-ink"
               >
                 <ThemeIcon className="size-4" strokeWidth={1.75} />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Theme: {themeLabel(mode)}</TooltipContent>
           </Tooltip>
-        </nav>
+          <Button
+            asChild
+            variant="outline"
+            className={cn(
+              'h-9 rounded-full border-accent/40 px-4 text-[13px] font-medium text-accent hover:bg-accent-soft hover:text-accent',
+              onHistory && 'bg-accent-soft',
+            )}
+          >
+            <Link to={onHistory ? '/' : '/runs'}>{onHistory ? 'New search' : 'History'}</Link>
+          </Button>
+        </div>
       </Container>
     </header>
   )

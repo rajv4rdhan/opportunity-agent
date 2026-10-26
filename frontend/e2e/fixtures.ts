@@ -152,18 +152,14 @@ export async function expectContainersAligned(page: Page): Promise<void> {
 }
 
 export async function expectCenteredHome(page: Page): Promise<void> {
-  // Split hero: the composer sits inside the shared container and the headline
-  // starts on the container's content edge.
   const composer = await page.locator('[data-testid=composer]').boundingBox()
-  const container = await page.locator('main [data-testid=container]').first().boundingBox()
-  const heading = await page.locator('h1').boundingBox()
+  const viewport = page.viewportSize()
   expect(composer, 'composer must be visible').not.toBeNull()
-  if (!composer || !container || !heading) return
-  expect(composer.x, 'composer inside container').toBeGreaterThanOrEqual(container.x - 1)
-  expect(composer.x + composer.width, 'composer inside container').toBeLessThanOrEqual(
-    container.x + container.width + 1,
-  )
-  expect(Math.abs(heading.x - composer.x), 'headline and composer share a left edge').toBeLessThanOrEqual(1)
+  if (!composer || !viewport) return
+  const center = composer.x + composer.width / 2
+  expect(Math.abs(center - viewport.width / 2), 'composer must be centered').toBeLessThanOrEqual(2)
+  const align = await page.locator('h1').evaluate((element) => getComputedStyle(element).textAlign)
+  expect(align).toBe('center')
 }
 
 export async function expectEqualRows(page: Page): Promise<void> {

@@ -3,6 +3,7 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/inter";
 @import "@fontsource-variable/jetbrains-mono";
+@import "@fontsource-variable/outfit";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -12,25 +13,29 @@
 --------------------------------------------------------------------------- */
 
 :root {
-  /* Blue on white. One accent, no gradients. */
-  --ss-canvas: #f6f8fc;
+  /* Lavender + four pastels, deep purple ink. */
+  --ss-canvas: #ffffff;
   --ss-surface: #ffffff;
-  --ss-subtle: #eef2fa;
-  --ss-line: #dfe5f0;
-  --ss-line-strong: #c3cddf;
-  --ss-ink: #0a1f44;
-  --ss-muted: #5a6a85;
-  --ss-accent: #1f56e0;
-  --ss-accent-soft: #e8eefd;
-  --ss-accent-deep: #0f3aa8;
+  --ss-subtle: #f5f2ff;
+  --ss-line: #e9e4f7;
+  --ss-line-strong: #d6cdf3;
+  --ss-ink: #2e2363;
+  --ss-muted: #6f6894;
+  --ss-accent: #8a6cf0;
+  --ss-accent-soft: #efeaff;
+  --ss-accent-deep: #4a3a9c;
   --ss-on-accent: #ffffff;
-  --ss-ok: #0f8a5f;
-  --ss-ok-soft: #e7f6ef;
-  --ss-warn: #b45309;
-  --ss-warn-soft: #fdf3e4;
-  --ss-err: #c8283b;
-  --ss-err-soft: #fcebee;
-
+  --ss-lilac: #dcd2fd;
+  --ss-peach: #fde3cb;
+  --ss-mint: #c6ead0;
+  --ss-pink: #fbd0e3;
+  --ss-sky: #d3e1fc;
+  --ss-ok: #2f9a5e;
+  --ss-ok-soft: #e4f6ea;
+  --ss-warn: #c26a17;
+  --ss-warn-soft: #fff1e2;
+  --ss-err: #d6336c;
+  --ss-err-soft: #ffe8f0;
   --background: var(--ss-canvas);
   --foreground: var(--ss-ink);
   --card: var(--ss-surface);
@@ -58,23 +63,28 @@
 }
 
 .dark {
-  --ss-canvas: #071226;
-  --ss-surface: #0c1a33;
-  --ss-subtle: #11223f;
-  --ss-line: #1c3054;
-  --ss-line-strong: #2b4573;
-  --ss-ink: #e9f0ff;
-  --ss-muted: #8fa2c4;
-  --ss-accent: #5b8cff;
-  --ss-accent-soft: #13285a;
-  --ss-accent-deep: #1f56e0;
+  --ss-canvas: #120e26;
+  --ss-surface: #1b1636;
+  --ss-subtle: #241d47;
+  --ss-line: #2f2758;
+  --ss-line-strong: #43397a;
+  --ss-ink: #f1edff;
+  --ss-muted: #a69fcc;
+  --ss-accent: #a58bff;
+  --ss-accent-soft: #2c2361;
+  --ss-accent-deep: #6f56e0;
   --ss-on-accent: #ffffff;
-  --ss-ok: #34c38f;
-  --ss-ok-soft: #0d2e26;
-  --ss-warn: #f0b04a;
-  --ss-warn-soft: #33240b;
-  --ss-err: #ff7083;
-  --ss-err-soft: #3a1220;
+  --ss-lilac: #3a2f78;
+  --ss-peach: #4a3426;
+  --ss-mint: #1f4030;
+  --ss-pink: #4a2340;
+  --ss-sky: #22335e;
+  --ss-ok: #5fd197;
+  --ss-ok-soft: #173426;
+  --ss-warn: #f3a85a;
+  --ss-warn-soft: #3a2817;
+  --ss-err: #ff7aa5;
+  --ss-err-soft: #3d1a2c;
 
   --primary-foreground: #ffffff;
   --accent-foreground: #ffffff;
@@ -92,6 +102,11 @@
   --color-accent-soft: var(--ss-accent-soft);
   --color-accent-deep: var(--ss-accent-deep);
   --color-on-accent: var(--ss-on-accent);
+  --color-lilac: var(--ss-lilac);
+  --color-peach: var(--ss-peach);
+  --color-mint: var(--ss-mint);
+  --color-pink: var(--ss-pink);
+  --color-sky: var(--ss-sky);
   --color-ok: var(--ss-ok);
   --color-ok-soft: var(--ss-ok-soft);
   --color-warn: var(--ss-warn);
@@ -101,11 +116,12 @@
 
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, monospace;
+  --font-display: "Outfit Variable", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
 
-  --radius-card: 14px;
+  --radius-card: 20px;
   --radius-control: 8px;
-  --shadow-card: 0 1px 2px rgb(10 31 68 / 0.05);
-  --shadow-lift: 0 1px 2px rgb(10 31 68 / 0.06), 0 12px 32px -16px rgb(10 31 68 / 0.22);
+  --shadow-card: 0 1px 2px rgb(46 35 99 / 0.04);
+  --shadow-lift: 0 1px 2px rgb(46 35 99 / 0.06), 0 16px 36px -18px rgb(74 58 156 / 0.35);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -146,6 +162,13 @@
     min-height: 100dvh;
     background: var(--color-canvas);
     color: var(--color-ink);
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.015em;
   }
 
   ::selection {
@@ -297,7 +320,7 @@
   background-color: #ffffff;
   background-image: repeating-linear-gradient(
     -45deg,
-    rgb(31 86 224 / 0.35) 0 6px,
+    rgb(138 108 240 / 0.45) 0 6px,
     transparent 6px 12px
   );
   background-size: 34px 34px;
@@ -322,15 +345,126 @@
   color: #ffffff;
 }
 
-/* Light drafting grid used behind the swarm canvas. */
+/* Dotted lavender sheet used behind the swarm canvas. */
 .ss-drafting {
   background-color: var(--color-surface);
-  background-image:
-    linear-gradient(color-mix(in srgb, var(--color-accent) 9%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--color-accent) 9%, transparent) 1px, transparent 1px),
-    linear-gradient(color-mix(in srgb, var(--color-accent) 4%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--color-accent) 4%, transparent) 1px, transparent 1px);
-  background-size: 96px 96px, 96px 96px, 24px 24px, 24px 24px;
+  background-image: radial-gradient(color-mix(in srgb, var(--color-accent) 28%, transparent) 1.2px, transparent 1.3px);
+  background-size: 18px 18px;
+}
+
+/* Raised "key" buttons: a darker edge under the face, pressed on click. */
+.ss-key {
+  box-shadow: 0 4px 0 var(--color-accent-deep);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.2s ease;
+}
+
+.ss-key:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 var(--color-accent-deep);
+}
+
+.ss-key:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--color-accent-deep);
+}
+
+.ss-key:disabled {
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--color-accent-deep) 35%, transparent);
+}
+
+/* Dark ink keys used on the device. */
+.ss-key-ink {
+  background-color: #2e2363 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 0 #160f3c;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.2s ease;
+}
+
+.ss-key-ink:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 #160f3c;
+}
+
+.ss-key-ink:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #160f3c;
+}
+
+.ss-key-ink:disabled {
+  opacity: 0.55;
+}
+
+/* The "device": lavender body, faint doodles, thick bottom edge. */
+.ss-device {
+  --device: #cbbcfb;
+  --device-edge: #9c84f2;
+  background-color: var(--device);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' fill='none' stroke='%23ffffff' stroke-opacity='0.35' stroke-width='1.5'%3E%3Cpath d='M14 22l12-6 12 6-12 6z'/%3E%3Cpath d='M20 25v6c4 3 8 3 12 0v-6'/%3E%3Ccircle cx='86' cy='30' r='9'/%3E%3Cpath d='M77 30h18M86 21c-4 5-4 13 0 18M86 21c4 5 4 13 0 18'/%3E%3Cpath d='M30 82l3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z'/%3E%3Crect x='76' y='74' width='18' height='24' rx='2'/%3E%3Cpath d='M80 81h10M80 86h10M80 91h6'/%3E%3C/svg%3E");
+  background-size: 120px 120px;
+  box-shadow: 0 8px 0 var(--device-edge), 0 24px 40px -20px rgb(74 58 156 / 0.45);
+}
+
+.dark .ss-device {
+  --device: #3a2f78;
+  --device-edge: #261e57;
+}
+
+/* Dot-matrix display (each dot is a span; lit dots get .on). */
+.ss-matrix {
+  display: grid;
+  gap: 4px;
+}
+
+.ss-matrix > span {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgb(46 35 99 / 0.16);
+  transition: background-color 0.25s ease, transform 0.25s ease;
+}
+
+.ss-matrix > span.on {
+  background: var(--ss-ink);
+}
+
+.dark .ss-matrix > span {
+  background: rgb(255 255 255 / 0.12);
+}
+
+.dark .ss-matrix > span.on {
+  background: #ffffff;
+}
+
+/* Pastel top tint for stat cards. */
+.ss-tint {
+  background-image: linear-gradient(180deg, var(--tint) 0%, transparent 46%);
+}
+
+@keyframes ss-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.ss-marquee {
+  animation: ss-marquee 48s linear infinite;
+}
+
+.ss-marquee:hover {
+  animation-play-state: paused;
+}
+
+@keyframes ss-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
 }
 
 .ss-eq {

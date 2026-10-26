@@ -2,7 +2,6 @@ import { CalendarClock } from 'lucide-react'
 
 import { useCountUp } from '@/lib/useCountUp'
 import { formatDate } from '@/lib/format'
-import { cn } from '@/lib/cn'
 import type { FinalReport } from '@/api/types'
 
 function Figure({ value }: { value: number }) {
@@ -30,10 +29,10 @@ export function ResultSummary({ report }: { report: FinalReport }) {
   return (
     <article
       data-testid="result-summary"
-      className="rounded-[18px] border border-line bg-surface p-6 shadow-card sm:p-8"
+      className="rounded-[24px] border border-line bg-surface p-6 shadow-card sm:p-8"
     >
       <p className="font-mono text-[11px] tracking-[0.14em] text-accent uppercase">01 / 07 · Summary</p>
-      <p className="mt-3 max-w-[820px] text-[30px] leading-[38px] font-semibold tracking-[-0.025em] max-sm:text-[24px] max-sm:leading-8">
+      <p className="mt-3 max-w-[820px] font-display text-[32px] leading-[40px] font-semibold tracking-[-0.025em] text-ink max-sm:text-[24px] max-sm:leading-8">
         We verified <span className="text-accent">{verified} opportunities</span> from official sources —{' '}
         {strong} are strong matches for you.
       </p>
@@ -44,17 +43,18 @@ export function ResultSummary({ report }: { report: FinalReport }) {
           : 'Most deadlines are rolling — check each official page.'}
       </p>
 
-      <div className="mt-7 grid grid-cols-1 border-t border-line sm:grid-cols-3">
+      <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-3">
         {figures.map((item, index) => (
           <div
             key={item.label}
             data-testid="kpi"
-            className={cn('pt-5 sm:pb-1', index > 0 && 'border-t border-line sm:border-t-0 sm:border-l sm:pl-6')}
+            className="ss-tint rounded-[18px] border border-line px-5 pt-5 pb-4"
+            style={{ ['--tint' as string]: ['var(--ss-mint)', 'var(--ss-lilac)', 'var(--ss-peach)'][index] }}
           >
-            <p data-testid="kpi-value" className="text-[44px] leading-none font-semibold tracking-[-0.03em] text-accent tabular-nums">
+            <p data-testid="kpi-value" className="font-display text-[44px] leading-none font-semibold tracking-[-0.03em] text-ink tabular-nums">
               <Figure value={item.value} />
             </p>
-            <p className="mt-2 pb-4 text-sm text-muted sm:pb-0">{item.label}</p>
+            <p className="mt-2 text-sm text-muted">{item.label}</p>
           </div>
         ))}
       </div>
