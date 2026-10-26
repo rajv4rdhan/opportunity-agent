@@ -63,7 +63,7 @@ class Composer:
         self._submitting = False
         self.sample_id: str | None = None
 
-        with ui.card().classes("ss-card ss-composer w-full"):
+        with ui.card().classes("ss-card ss-composer w-full").mark("composer"):
             self.upload = (
                 ui.upload(
                     multiple=True,
@@ -86,6 +86,7 @@ class Composer:
                 ui.textarea(placeholder=PLACEHOLDER)
                 .props("autogrow borderless")
                 .classes("ss-composer-text")
+                .mark("composer-text")
             )
             self.live = ui.label("").classes("ss-live-text")
             self.text.on("keydown.ctrl.enter", self.submit)
@@ -105,6 +106,7 @@ class Composer:
                     self.submit_button = (
                         ui.button("Find scholarships", icon="arrow_forward", on_click=self.submit)
                         .props("color=primary unelevated no-caps")
+                        .mark("composer-submit")
                     )
 
         self.hints = ui.row().classes("flex-wrap items-center gap-1 w-full")

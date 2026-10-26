@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
 from nicegui import ui
 
 from app.ui.agents import PHASES
@@ -31,7 +29,9 @@ class PhaseBar:
             return float(view.stats.duration_sec)
         if view.started_at is None:
             return 0.0
-        return max(0.0, (datetime.now(timezone.utc) - view.started_at).total_seconds())
+        if view.events:
+            return max(0.0, (view.events[-1].ts - view.started_at).total_seconds())
+        return 0.0
 
     def _eta_text(self, view: RunView, elapsed: float) -> str:
         if view.finished:
