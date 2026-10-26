@@ -123,3 +123,25 @@ test('replay at 20x reaches the results', async ({ page }) => {
   await expect(page.getByText(/Replay/).first()).toBeVisible()
   await expect(page.getByText(/We verified/)).toBeVisible({ timeout: 20_000 })
 })
+
+
+test('history row click opens the run', async ({ page }) => {
+  await page.goto('/runs')
+  await expect(page.getByRole('heading', { name: 'History' })).toBeVisible()
+  const width = page.viewportSize()?.width ?? 0
+  if (width >= 640) {
+    await page.getByRole('row').filter({ hasText: 'fixture' }).click()
+  } else {
+    await page.getByTestId('history-card').filter({ hasText: 'fixture' }).click()
+  }
+  await page.waitForURL('**/runs/fixture')
+  await expect(page.getByText(/We verified/)).toBeVisible({ timeout: 15_000 })
+})
+
+
+test('the 404 page offers a way home', async ({ page }) => {
+  await page.goto('/does-not-exist')
+  await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible()
+  await page.getByRole('link', { name: 'Go home' }).click()
+  await page.waitForURL('**/')
+})

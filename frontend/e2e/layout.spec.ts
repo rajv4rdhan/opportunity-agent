@@ -72,3 +72,34 @@ test('finished layout invariants', async ({ page }) => {
   await expectNoClippedText(page)
   await expectTextInsidePanels(page)
 })
+
+
+test('history layout invariants', async ({ page }) => {
+  await page.goto('/runs')
+  await page.waitForTimeout(400)
+  await expectNoHorizontalScroll(page)
+  await expectContainersAligned(page)
+  await expectNoClippedText(page)
+  await expectTextInsidePanels(page)
+  if ((page.viewportSize()?.width ?? 0) < 640) {
+    await expectTapTargets(page)
+  }
+})
+
+
+test('replay layout invariants', async ({ page }) => {
+  await page.goto('/runs/fixture?replay=1&speed=20')
+  await page.waitForTimeout(2000)
+
+  await expectNoHorizontalScroll(page)
+  await expectContainersAligned(page)
+  await expectNoClippedText(page)
+  await expectTextInsidePanels(page)
+
+  const width = page.viewportSize()?.width ?? 0
+  if (width >= 1024) {
+    await expectNoNodeOverlap(page)
+    await expectEdgesAttach(page)
+    await expectCanvasReadable(page)
+  }
+})
