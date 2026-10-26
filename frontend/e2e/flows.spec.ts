@@ -66,3 +66,20 @@ test('the advanced sheet opens and chaos switches toggle', async ({ page }) => {
   await page.getByRole('button', { name: 'Done' }).click()
   await expect(page.getByRole('heading', { name: 'Advanced options' })).toBeHidden()
 })
+
+
+test('a mid-run page shows the swarm and verifier pool', async ({ page }) => {
+  await mockApi(page, { mid: true })
+  await page.goto('/runs/fixture')
+  await page.waitForTimeout(1200)
+
+  const width = page.viewportSize()?.width ?? 0
+  if (width >= 1024) {
+    await expect(page.locator('[data-testid=agent-node][data-status=done]').first()).toBeVisible()
+    expect(await page.locator('[data-testid=agent-node][data-status=done]').count()).toBeGreaterThanOrEqual(3)
+    expect(await page.locator('[data-testid=verifier-pool] .animate-spin').count()).toBeGreaterThanOrEqual(1)
+    expect(await page.locator('[data-testid=verifier-pool] .grid span').count()).toBeGreaterThanOrEqual(1)
+  } else {
+    await expect(page.getByText('Agent swarm')).toBeVisible()
+  }
+})

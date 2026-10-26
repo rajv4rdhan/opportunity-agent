@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import {
   createRun,
+  getEventsJson,
   getGraph,
   getMeta,
   getRun,
@@ -33,6 +34,15 @@ export function useRun(id: string | undefined, enabled = true) {
     queryFn: () => getRun(id as string),
     enabled: Boolean(id) && enabled,
     staleTime: 0,
+  })
+}
+
+export function useEventsJson(id: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: ['events', id],
+    queryFn: () => getEventsJson(id as string),
+    enabled: Boolean(id) && enabled,
+    staleTime: Number.POSITIVE_INFINITY,
   })
 }
 

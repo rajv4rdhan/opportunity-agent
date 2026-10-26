@@ -1,6 +1,3 @@
-import { useState, type KeyboardEvent } from 'react'
-import { X } from 'lucide-react'
-
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -23,7 +20,7 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import { Badge } from '@/components/ui/badge'
+import { ChipsInput } from '@/components/common/ChipsInput'
 import type { MetaResponse } from '@/api/types'
 import { COUNTRIES } from '@/lib/coverage'
 
@@ -63,76 +60,6 @@ function numberValue(value: string): number | null {
   if (value.trim() === '') return null
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : null
-}
-
-function ChipsField({
-  values,
-  onChange,
-  placeholder,
-  suggestions,
-}: {
-  values: string[]
-  onChange: (values: string[]) => void
-  placeholder: string
-  suggestions?: string[]
-}) {
-  const [draft, setDraft] = useState('')
-
-  function add(value: string) {
-    const cleaned = value.trim()
-    if (!cleaned) return
-    if (!values.some((item) => item.toLowerCase() === cleaned.toLowerCase())) {
-      onChange([...values, cleaned])
-    }
-    setDraft('')
-  }
-
-  function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key === 'Enter' || event.key === ',') {
-      event.preventDefault()
-      add(draft)
-    } else if (event.key === 'Backspace' && !draft && values.length) {
-      onChange(values.slice(0, -1))
-    }
-  }
-
-  return (
-    <div className="rounded-[var(--radius-control)] border border-input bg-transparent px-2 py-1.5 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30 dark:bg-input/30">
-      {values.length ? (
-        <div className="mb-1 flex flex-wrap gap-1">
-          {values.map((value) => (
-            <Badge key={value} variant="secondary" className="gap-1 pr-1 text-[11px]">
-              {value}
-              <button
-                type="button"
-                aria-label={`Remove ${value}`}
-                onClick={() => onChange(values.filter((item) => item !== value))}
-                className="rounded-full p-0.5 text-muted hover:text-ink"
-              >
-                <X className="size-2.5" />
-              </button>
-            </Badge>
-          ))}
-        </div>
-      ) : null}
-      <input
-        value={draft}
-        onChange={(event) => setDraft(event.target.value)}
-        onKeyDown={onKeyDown}
-        onBlur={() => add(draft)}
-        placeholder={placeholder}
-        list={suggestions ? 'country-suggestions' : undefined}
-        className="h-6 w-full border-0 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-      />
-      {suggestions ? (
-        <datalist id="country-suggestions">
-          {suggestions.map((value) => (
-            <option key={value} value={value} />
-          ))}
-        </datalist>
-      ) : null}
-    </div>
-  )
 }
 
 export function AdvancedSheet({
@@ -188,7 +115,7 @@ export function AdvancedSheet({
                 </div>
                 <div className="col-span-2 space-y-1.5">
                   <Label>Target countries</Label>
-                  <ChipsField
+                  <ChipsInput
                     values={values.target_countries}
                     onChange={(target_countries) => patch({ target_countries })}
                     placeholder="Type a country and press Enter"

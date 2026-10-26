@@ -11,6 +11,7 @@ export function Panel({
   className,
   bodyClassName,
   scroll = false,
+  flush = false,
   testId = 'panel',
 }: {
   title?: ReactNode
@@ -20,6 +21,7 @@ export function Panel({
   className?: string
   bodyClassName?: string
   scroll?: boolean
+  flush?: boolean
   testId?: string
 }) {
   return (
@@ -49,7 +51,7 @@ export function Panel({
         </ScrollArea>
       ) : (
         <div className={cn('min-h-0 flex-1', bodyClassName)}>
-          <div className="px-5 py-3">{children}</div>
+          {flush ? children : <div className="px-5 py-3">{children}</div>}
         </div>
       )}
     </section>

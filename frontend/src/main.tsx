@@ -7,6 +7,7 @@ import { Toaster } from 'sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { applyTheme, readStoredTheme } from '@/lib/theme'
 import { router } from '@/router'
+import '@xyflow/react/dist/style.css'
 import './styles/globals.css'
 
 const queryClient = new QueryClient({

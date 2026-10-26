@@ -8,6 +8,15 @@ import runFinished from './fixtures/run-finished.json' with { type: 'json' }
 import runMid from './fixtures/run-mid.json' with { type: 'json' }
 import runs from './fixtures/runs.json' with { type: 'json' }
 
+function recentEvents(events: typeof eventsFull): typeof eventsFull {
+  if (events.length === 0) return events
+  const offset = Date.now() - Date.parse(events[events.length - 1].ts)
+  return events.map((event) => ({
+    ...event,
+    ts: new Date(Date.parse(event.ts) + offset).toISOString(),
+  }))
+}
+
 export const FIXTURES = {
   graph,
   eventsFull,
@@ -38,10 +47,10 @@ export async function mockApi(page: Page, options: MockOptions = {}): Promise<vo
     if (path === '/api/runs' && request.method() === 'POST') return json({ run_id: 'fixture' })
     if (path === '/api/runs') return json(runs)
     if (path === '/api/runs/fixture/events.json') {
-      return json(options.mid ? eventsMid : eventsFull)
+      return json(recentEvents(options.mid ? eventsMid : eventsFull))
     }
     if (path === '/api/runs/fixture/events') {
-      const events = options.mid ? eventsMid : eventsFull
+      const events = recentEvents(options.mid ? eventsMid : eventsFull)
       const body = events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join('')
       return route.fulfill({
         status: 200,

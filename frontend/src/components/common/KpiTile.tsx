@@ -25,7 +25,7 @@ export function KpiTile({
             ? 'text-accent'
             : 'text-ink'
   return (
-    <Panel className={cn('p-0', className)} testId="kpi">
+    <Panel flush className={cn('p-0', className)} testId="kpi">
       <div className="px-4 py-3">
         <p className="text-[11px] leading-4 font-semibold tracking-[0.08em] text-muted uppercase">
           {label}

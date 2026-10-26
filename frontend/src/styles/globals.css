@@ -82,7 +82,7 @@
   --color-line: var(--ss-line);
   --color-line-strong: var(--ss-line-strong);
   --color-ink: var(--ss-ink);
-  --color-muted: var(--ss-muted);
+  --color-muted: var(--ss-subtle);
   --color-accent: var(--ss-accent);
   --color-accent-soft: var(--ss-accent-soft);
   --color-ok: var(--ss-ok);
@@ -152,6 +152,14 @@
 
   .tabular-nums {
     font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer utilities {
+  /* Plan token: --color-muted is secondary text. shadcn uses bg-muted as a
+     surface, so keep that subtle and pin text-muted to the text token. */
+  .text-muted {
+    color: var(--ss-muted) !important;
   }
 }
 
@@ -358,6 +366,12 @@
 
 .ss-no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* Radix ScrollArea renders its content as a table by default, which lets long
+   text grow past the panel. Block layout keeps truncation inside the panel. */
+[data-radix-scroll-area-viewport] > div {
+  display: block !important;
 }
 
 @media print {
