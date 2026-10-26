@@ -167,7 +167,12 @@ def _update_phases(view: RunView) -> None:
         for agent, status in view.agent_status.items()
         if status == "running" and agent in PHASE_OF_AGENT
     ]
-    current = max(running) if running else started_phases[-1]
+    waiting = [
+        PHASE_INDEX[PHASE_OF_AGENT[agent]]
+        for agent, status in view.agent_status.items()
+        if status == "waiting" and agent in PHASE_OF_AGENT
+    ]
+    current = waiting[-1] if waiting else max(running) if running else started_phases[-1]
     view.phase = PHASES[current]["id"]
 
     done: set[str] = set()

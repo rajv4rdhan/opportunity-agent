@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import statistics
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -142,6 +143,31 @@ async def list_runs(limit: int = 50) -> list[dict[str, Any]]:
     finally:
         await db.close()
     return [dict(row) for row in rows]
+
+
+async def median_duration_sec(limit: int = 20) -> float | None:
+    """Median duration of recent finished runs, used for the live ETA."""
+    db = await _connect()
+    try:
+        cursor = await db.execute(
+            "SELECT report_json FROM runs WHERE status='finished' AND report_json IS NOT NULL "
+            "ORDER BY created_at DESC LIMIT ?",
+            (limit,),
+        )
+        rows = await cursor.fetchall()
+    finally:
+        await db.close()
+    durations = []
+    for row in rows:
+        report = _loads(row["report_json"], None)
+        value = (report or {}).get("stats", {}).get("duration_sec")
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            continue
+        if number > 0:
+            durations.append(number)
+    return statistics.median(durations) if durations else None
 
 
 async def insert_event(event: Event) -> int:

@@ -1,56 +1,65 @@
-"""Launch page: provider health, upload form, chaos switches, launch button."""
+"""Intake home: one composer for a resume, typed text or speech."""
 
 from __future__ import annotations
 
+import json
+
 from nicegui import ui
 
-from app.config import PROVIDERS, settings
 from app.services import runner
-from app.tools.github import resolve_token
-from app.ui.components.chaos_panel import ChaosPanel
-from app.ui.components.upload_form import UploadForm
+from app.ui.components.advanced_options import SAMPLES_DIR, AdvancedOptions, save_attachments
+from app.ui.components.composer import Composer, ComposerValue
 from app.ui.theme import frame
 
 
-def _provider_row() -> None:
-    with ui.row().classes("flex-wrap gap-4 items-center"):
-        for name in PROVIDERS:
-            configured = bool(resolve_token()) if name == "github" else settings.configured(name)
-            with ui.row().classes("items-center gap-1"):
-                ui.element("div").classes(
-                    f"w-2.5 h-2.5 rounded-full {'bg-green-500' if configured else 'bg-gray-300'}"
-                )
-                ui.label(name).classes("text-xs uppercase tracking-wide text-gray-500")
+def _sample_description(name: str, data: dict) -> str:
+    degree = data.get("target_degree") or "a master's"
+    fields = ", ".join(data.get("target_fields") or []) or "my field"
+    countries = ", ".join(data.get("target_countries") or []) or "my target countries"
+    budget = data.get("budget_inr_per_year")
+    budget_text = f" My budget is about INR {budget:,} per year." if budget else ""
+    return f"Sample profile: {name.title()}. I want {degree} in {fields} in {countries}.{budget_text}"
 
 
 @ui.page("/")
 def home() -> None:
     with frame("New search"):
-        ui.label("ScholarSwarm — AI agents that find your funding").classes("text-3xl font-bold")
-        ui.label(
-            "Upload a resume and transcript, launch the swarm, and watch it verify real "
-            "scholarships and programs with sources."
-        ).classes("text-base text-gray-500")
-        ui.label("Providers").classes("text-xs font-semibold uppercase opacity-60")
-        _provider_row()
+        with ui.column().classes("w-full max-w-[760px] mx-auto gap-6 py-4"):
+            with ui.column().classes("gap-2"):
+                ui.label("AI scholarship research").classes("ss-eyebrow")
+                ui.label("Find funding you actually qualify for.").classes("ss-h1")
+                ui.label(
+                    "Eleven AI agents read your profile, search official sources, verify every "
+                    "requirement and draft your application."
+                ).classes("ss-sub")
 
-        form = UploadForm()
-        chaos = ChaosPanel()
+            async def launch(value: ComposerValue) -> None:
+                form = advanced.to_form(value.description, value.modes)
+                resume_path, transcript_path = save_attachments(value.files)
+                try:
+                    run_id = await runner.create_run(form, resume_path, transcript_path)
+                except Exception as error:  # noqa: BLE001 - shown to the user
+                    ui.notify(str(error), type="negative")
+                    return
+                ui.navigate.to(f"/runs/{run_id}")
 
-        async def launch() -> None:
-            if form.resume_bytes is None and not form.sample.value:
-                ui.notify("Upload a resume PDF or load a sample profile.", type="warning")
-                return
-            run_form = form.to_form()
-            run_form.chaos = chaos.values()
-            resume_path, transcript_path = form.save_attachments()
-            try:
-                run_id = await runner.create_run(run_form, resume_path, transcript_path)
-            except Exception as error:  # noqa: BLE001 - shown to the user
-                ui.notify(str(error), type="negative")
-                return
-            ui.navigate.to(f"/runs/{run_id}")
+            composer = Composer(launch)
 
-        ui.button("Launch Agents", icon="rocket_launch", on_click=launch).props(
-            "size=lg color=primary"
-        ).classes("mt-2")
+            def apply_sample(name: str) -> None:
+                form_path = SAMPLES_DIR / name / "form.json"
+                data = json.loads(form_path.read_text()) if form_path.exists() else {}
+                composer.text.value = _sample_description(name, data)
+                composer.set_sample(name)
+                composer._refresh_hints(force=True)
+
+            advanced = AdvancedOptions(on_sample=apply_sample)
+
+            with ui.row().classes("ss-trust"):
+                for icon, text in (
+                    ("verified", "Official sources only"),
+                    ("format_quote", "Every fact cited"),
+                    ("lock", "Your files stay in this session"),
+                ):
+                    with ui.row().classes("items-center gap-1"):
+                        ui.icon(icon, size="14px")
+                        ui.label(text)

@@ -301,6 +301,7 @@ body {
   min-height: 300px;
   border-radius: var(--radius);
   overflow: hidden;
+  container-type: inline-size;
 }
 
 .ss-canvas-bg {
@@ -325,7 +326,13 @@ body {
 }
 
 .ss-node.is-tall {
-  height: calc(100% - 20px);
+  height: 78.18%;
+}
+
+.ss-node.is-verifier {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
 }
 
 .ss-node.is-running {
@@ -556,6 +563,41 @@ body {
   background: var(--warn);
 }
 
+.ss-worker-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  width: 100%;
+}
+
+.ss-worker-more {
+  color: var(--muted);
+  font-size: 10px;
+  padding: 2px 4px;
+}
+
+.ss-spin {
+  animation: ss-spin 1s linear infinite;
+}
+
+.ss-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ss-timeline-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ss-timeline-row:last-child {
+  border-bottom: 0;
+}
+
 /* ---------- composer ---------- */
 
 .ss-composer {
@@ -609,6 +651,10 @@ body {
   border-top: 1px solid var(--border);
 }
 
+.ss-composer-toolbar .ss-small:empty {
+  display: none;
+}
+
 .ss-attachment {
   display: inline-flex;
   align-items: center;
@@ -651,6 +697,32 @@ body {
   border-color: color-mix(in srgb, var(--ok) 30%, var(--border));
   background: color-mix(in srgb, var(--ok) 7%, var(--surface));
   color: var(--ok);
+}
+
+.ss-hint.is-document {
+  border-style: solid;
+  border-color: var(--border);
+  background: var(--bg);
+  color: var(--muted);
+}
+
+.ss-dropzone {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s var(--ease), color 0.15s var(--ease);
+}
+
+.ss-dropzone:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .ss-mic {
@@ -903,6 +975,12 @@ body {
   }
 }
 
+@keyframes ss-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -933,6 +1011,31 @@ body {
 
   .ss-h1 {
     font-size: 28px;
+  }
+}
+
+@container (max-width: 900px) {
+  .ss-node {
+    padding: 7px 8px;
+    gap: 6px;
+  }
+
+  .ss-node-icon {
+    width: 22px;
+    height: 22px;
+    flex-basis: 22px;
+  }
+
+  .ss-node-name {
+    font-size: 11px;
+  }
+
+  .ss-node-role {
+    display: none;
+  }
+
+  .ss-node-thought {
+    font-size: 10px;
   }
 }
 
