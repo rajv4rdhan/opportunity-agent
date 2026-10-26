@@ -53,6 +53,8 @@ function CanvasInner({ state }: { state: RunState }) {
       draggable: false,
       selectable: false,
       connectable: false,
+      width: lane.width,
+      height: 20,
       style: { width: lane.width, height: 20 },
     }))
 
@@ -67,6 +69,8 @@ function CanvasInner({ state }: { state: RunState }) {
           draggable: false,
           selectable: false,
           connectable: false,
+          width: layout.width,
+          height: layout.height,
           style: { width: layout.width, height: layout.height },
         }
         return node
@@ -83,6 +87,8 @@ function CanvasInner({ state }: { state: RunState }) {
         draggable: false,
         selectable: false,
         connectable: false,
+        width: layout.width,
+        height: layout.height,
         style: { width: layout.width, height: layout.height },
       }
       return node

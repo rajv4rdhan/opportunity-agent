@@ -47,6 +47,8 @@ test('mid-run layout invariants', async ({ page }) => {
 
   const width = page.viewportSize()?.width ?? 0
   if (width >= 1024) {
+    const visibleAgents = await page.locator('.react-flow__node-agent:visible').count()
+    expect(visibleAgents, 'replay canvas nodes must be visible').toBeGreaterThanOrEqual(10)
     await expectNoNodeOverlap(page)
     await expectEdgesAttach(page)
     await expectCanvasReadable(page)
@@ -98,6 +100,8 @@ test('replay layout invariants', async ({ page }) => {
 
   const width = page.viewportSize()?.width ?? 0
   if (width >= 1024) {
+    const visibleAgents = await page.locator('.react-flow__node-agent:visible').count()
+    expect(visibleAgents, 'replay canvas nodes must be visible').toBeGreaterThanOrEqual(10)
     await expectNoNodeOverlap(page)
     await expectEdgesAttach(page)
     await expectCanvasReadable(page)
