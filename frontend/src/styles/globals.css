@@ -380,20 +380,35 @@
     display: none !important;
   }
 
+  header {
+    display: none !important;
+  }
+
+  [data-slot="tabs-list"] {
+    display: none !important;
+  }
+
+  button {
+    display: none !important;
+  }
+
+  [data-slot="tabs-content"][hidden],
+  [data-slot="tabs-content"][data-state="inactive"] {
+    display: block !important;
+  }
+
   body {
     background: #ffffff;
   }
 
-  .ss-print-stack [role="tabpanel"][hidden] {
-    display: block !important;
-  }
-
-  .ss-print-stack [data-state="inactive"] {
-    display: block !important;
+  #results {
+    width: 100%;
   }
 
   .ss-card,
-  [data-testid="panel"] {
+  [data-testid="panel"],
+  [data-testid="match-card"] {
     break-inside: avoid;
+    box-shadow: none !important;
   }
 }

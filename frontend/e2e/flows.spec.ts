@@ -83,3 +83,43 @@ test('a mid-run page shows the swarm and verifier pool', async ({ page }) => {
     await expect(page.getByText('Agent swarm')).toBeVisible()
   }
 })
+
+
+test('a finished run shows the summary, matches and requirements', async ({ page }) => {
+  await page.goto('/runs/fixture')
+  await expect(page.getByText(/We verified/)).toBeVisible({ timeout: 15_000 })
+  await expect(page.locator('[data-testid=match-card]')).toHaveCount(5)
+  await expect(page.getByRole('tab', { name: 'Matches' })).toBeVisible()
+
+  await page.getByRole('button', { name: /Requirements \(/ }).first().click()
+  await expect(page.getByText(/full-time research-stream/i).first()).toBeVisible()
+})
+
+test('unlock more recalculates and shows newly eligible matches', async ({ page }) => {
+  await page.route('**/api/runs/fixture/whatif', async (route) => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        opportunities: [
+          { id: 'new-1', name: 'New Scholarship', eligibility: 'eligible', score: 92 },
+        ],
+        gaps: [],
+      }),
+    })
+  })
+
+  await page.goto('/runs/fixture')
+  await expect(page.getByText(/We verified/)).toBeVisible({ timeout: 15_000 })
+  await page.getByRole('tab', { name: /Unlock/ }).click()
+  await page.getByRole('button', { name: 'Recalculate' }).click()
+  await expect(page.getByText('New Scholarship')).toBeVisible()
+  await expect(page.getByText('Newly eligible')).toBeVisible()
+})
+
+test('replay at 20x reaches the results', async ({ page }) => {
+  await mockApi(page, { fastReplay: true })
+  await page.goto('/runs/fixture?replay=1&speed=20')
+  await expect(page.getByText(/Replay/).first()).toBeVisible()
+  await expect(page.getByText(/We verified/)).toBeVisible({ timeout: 20_000 })
+})

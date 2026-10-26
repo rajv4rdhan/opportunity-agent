@@ -59,7 +59,7 @@ export function RunHeader({
   }
 
   return (
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+    <div className="ss-no-print flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
       <div className="flex min-w-0 flex-wrap items-center gap-3">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-sm font-semibold text-accent">
           {initials(name)}
@@ -71,7 +71,7 @@ export function RunHeader({
             <button
               type="button"
               onClick={() => copy(runId, 'Run id copied')}
-              className="inline-flex items-center gap-1 font-mono text-xs text-muted hover:text-ink"
+              className="inline-flex h-8 items-center gap-1 font-mono text-xs text-muted hover:text-ink"
             >
               run {runId.slice(0, 8)}
               <Copy className="size-3" strokeWidth={1.75} />
@@ -82,13 +82,16 @@ export function RunHeader({
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-sm tabular-nums">{formatClock(elapsed)}</span>
-          {state.finished ? (
-            <span className="text-xs text-muted">{formatDuration(state.stats.durationSec)}</span>
-          ) : null}
-          <span className="text-xs text-muted">{etaText(elapsed, median, state.finished)}</span>
-        </div>
+        {state.finished ? (
+          <span className="font-mono text-sm tabular-nums">
+            {formatDuration(state.stats.durationSec)}
+          </span>
+        ) : (
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-sm tabular-nums">{formatClock(elapsed)}</span>
+            <span className="text-xs text-muted">{etaText(elapsed, median, false)}</span>
+          </div>
+        )}
 
         {(state.status === 'finished' || state.status === 'failed') && !isReplay ? (
           <Button

@@ -29,6 +29,17 @@ export const FIXTURES = {
 
 export interface MockOptions {
   mid?: boolean
+  fastReplay?: boolean
+}
+
+function compressedEvents(events: typeof eventsFull): typeof eventsFull {
+  const span = 40_000
+  const step = events.length > 1 ? span / (events.length - 1) : 0
+  const end = Date.now()
+  return events.map((event, index) => ({
+    ...event,
+    ts: new Date(end - span + index * step).toISOString(),
+  }))
 }
 
 export async function mockApi(page: Page, options: MockOptions = {}): Promise<void> {
@@ -47,6 +58,7 @@ export async function mockApi(page: Page, options: MockOptions = {}): Promise<vo
     if (path === '/api/runs' && request.method() === 'POST') return json({ run_id: 'fixture' })
     if (path === '/api/runs') return json(runs)
     if (path === '/api/runs/fixture/events.json') {
+      if (options.fastReplay) return json(compressedEvents(eventsFull))
       return json(recentEvents(options.mid ? eventsMid : eventsFull))
     }
     if (path === '/api/runs/fixture/events') {
@@ -210,7 +222,7 @@ export async function expectNoClippedText(page: Page): Promise<void> {
 export async function expectTextInsidePanels(page: Page): Promise<void> {
   const failures = await page.evaluate(() => {
     const bad: string[] = []
-    for (const panel of Array.from(document.querySelectorAll('[data-testid=panel]'))) {
+    for (const panel of Array.from(document.querySelectorAll('[data-testid=panel],[data-testid=match-card]'))) {
       const panelRect = panel.getBoundingClientRect()
       for (const element of Array.from(panel.querySelectorAll('p, span, a, h1, h2, h3, td, th'))) {
         const rect = element.getBoundingClientRect()

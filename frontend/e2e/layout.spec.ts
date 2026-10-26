@@ -1,4 +1,4 @@
-import { test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 import {
   expectCanvasReadable,
@@ -51,4 +51,24 @@ test('mid-run layout invariants', async ({ page }) => {
     await expectEdgesAttach(page)
     await expectCanvasReadable(page)
   }
+})
+
+
+test('finished layout invariants', async ({ page }) => {
+  await page.goto('/runs/fixture')
+  await expect(page.getByText(/We verified/)).toBeVisible({ timeout: 15_000 })
+
+  await expectNoHorizontalScroll(page)
+  await expectContainersAligned(page)
+  await expectNoClippedText(page)
+  await expectTextInsidePanels(page)
+  if ((page.viewportSize()?.width ?? 0) < 640) {
+    await expectTapTargets(page)
+  }
+
+  await page.getByRole('tab', { name: 'SOP' }).click()
+  await page.waitForTimeout(300)
+  await expectNoHorizontalScroll(page)
+  await expectNoClippedText(page)
+  await expectTextInsidePanels(page)
 })
