@@ -6,7 +6,6 @@ from datetime import date, datetime, timezone
 from urllib.parse import urljoin
 
 from app.core.agent import AgentCtx, agent
-from app.core.events import emit
 from app.core.fallback import AllProvidersFailed
 from app.core.utils import is_official_domain, quote_supported, slugify, truncate
 from app.models.agent_outputs import VerifierOutput
@@ -50,11 +49,9 @@ async def verifier(state: dict, ctx: AgentCtx) -> dict:
     try:
         page = await fetch_page(ctx, candidate.url)
     except AllProvidersFailed as error:
-        await emit(
-            ctx.run_id,
+        await ctx.emit(
             "opportunity_rejected",
             f"Unreachable: {candidate.url}",
-            ctx.agent,
             url=candidate.url,
             reason=str(error),
         )
@@ -73,11 +70,9 @@ async def verifier(state: dict, ctx: AgentCtx) -> dict:
 
     if not result.is_relevant or result.opportunity is None:
         reason = result.reason or "not relevant to this student"
-        await emit(
-            ctx.run_id,
+        await ctx.emit(
             "opportunity_rejected",
             f"Rejected {candidate.url}: {reason}",
-            ctx.agent,
             url=candidate.url,
             reason=reason,
         )
@@ -104,12 +99,10 @@ async def verifier(state: dict, ctx: AgentCtx) -> dict:
     _check_quotes(opportunity, combined_text)
     opportunity.is_expired = expired(opportunity.deadline)
 
-    await emit(
-        ctx.run_id,
+    await ctx.emit(
         "opportunity_verified",
         f"{opportunity.name} — {opportunity.funding_type.replace('_', ' ')} funding, "
         f"deadline {opportunity.deadline or 'unknown'}, confidence {opportunity.confidence:.0%}",
-        ctx.agent,
         name=opportunity.name,
         url=final_url,
         funding=opportunity.funding_type,

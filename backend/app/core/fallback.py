@@ -14,7 +14,6 @@ from tenacity import (
 )
 
 from app.core.chaos import maybe_fail
-from app.core.events import emit
 
 if TYPE_CHECKING:
     from app.core.agent import AgentCtx
@@ -62,12 +61,12 @@ async def _with_retries(
 ) -> T:
     async def on_retry(retry_state) -> None:
         error = retry_state.outcome.exception() if retry_state.outcome else None
-        await emit(
-            ctx.run_id,
+        await ctx.emit(
             "retry",
             f"{label}/{name} failed ({error}); retrying",
-            ctx.agent,
-            data={"provider": name, "attempt": retry_state.attempt_number, "error": str(error)},
+            provider=name,
+            attempt=retry_state.attempt_number,
+            error=str(error),
         )
 
     retrying = AsyncRetrying(
@@ -96,40 +95,39 @@ async def first_success(
         next_name = attempts[position + 1][0] if position + 1 < len(attempts) else None
         try:
             await maybe_fail(ctx.run_id, ctx.chaos, f"{label}.{name}")
-            await emit(
-                ctx.run_id,
+            await ctx.emit(
                 "tool_call",
                 f"{label}: calling {name}",
-                ctx.agent,
-                data={"label": label, "provider": name},
+                label=label,
+                provider=name,
             )
             result = await _with_retries(ctx, label, name, fn, retries_each)
             if is_empty(result):
                 raise EmptyResult(f"{label}/{name} returned no data")
-            await emit(
-                ctx.run_id,
+            await ctx.emit(
                 "tool_result",
                 f"{label}: {name} returned {_summary(result)}",
-                ctx.agent,
-                data={"label": label, "provider": name, "result": _summary(result)},
+                label=label,
+                provider=name,
+                result=_summary(result),
             )
             return result
         except Exception as error:  # noqa: BLE001 - converted into a visible fallback
             errors.append((name, str(error)))
             tail = f"next: {next_name}" if next_name else "no providers left"
-            await emit(
-                ctx.run_id,
+            await ctx.emit(
                 "fallback",
                 f"{label}: {name} failed ({error}); {tail}",
-                ctx.agent,
-                data={"label": label, "provider": name, "error": str(error), "next": next_name},
+                label=label,
+                provider=name,
+                error=str(error),
+                next=next_name,
             )
 
-    await emit(
-        ctx.run_id,
+    await ctx.emit(
         "tool_error",
         f"{label}: every provider failed",
-        ctx.agent,
-        data={"label": label, "errors": errors},
+        label=label,
+        errors=errors,
     )
     raise AllProvidersFailed(label, errors)

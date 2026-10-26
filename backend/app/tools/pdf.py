@@ -7,8 +7,6 @@ from typing import TYPE_CHECKING
 
 import pymupdf as fitz
 
-from app.core.events import emit
-
 if TYPE_CHECKING:
     from app.core.agent import AgentCtx
 
@@ -43,11 +41,11 @@ async def extract_document(ctx: "AgentCtx", path: Path) -> tuple[str, list[bytes
     if len(text) >= MIN_TEXT_CHARS:
         return text, None
     images = render_pages(path)
-    await emit(
-        ctx.run_id,
+    await ctx.emit(
         "fallback",
         f"Scanned PDF {path.name} has little text → sending {len(images)} page image(s) to the vision model",
-        ctx.agent,
-        data={"file": path.name, "chars": len(text), "pages": len(images)},
+        file=path.name,
+        chars=len(text),
+        pages=len(images),
     )
     return text, images

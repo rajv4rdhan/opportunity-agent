@@ -1,9 +1,8 @@
-from types import SimpleNamespace
-
 import httpx
 import pytest
 
 from app.core import chaos
+from app.core.agent import AgentCtx
 from app.core.fallback import AllProvidersFailed, first_success
 
 
@@ -11,17 +10,24 @@ from app.core.fallback import AllProvidersFailed, first_success
 def events(monkeypatch):
     recorded: list[dict] = []
 
-    async def fake_emit(run_id, type, message, agent=None, **data):
-        recorded.append({"run_id": run_id, "type": type, "message": message, "data": data})
+    async def fake_ctx_emit(self, kind, message, **data):
+        recorded.append(
+            {"run_id": self.run_id, "type": kind, "message": message, "agent": self.agent, "data": data}
+        )
 
-    monkeypatch.setattr("app.core.fallback.emit", fake_emit)
-    monkeypatch.setattr("app.core.chaos.emit", fake_emit)
+    async def fake_bus_emit(run_id, type, message, agent=None, data=None, **fields):
+        recorded.append(
+            {"run_id": run_id, "type": type, "message": message, "agent": agent, "data": {**(data or {}), **fields}}
+        )
+
+    monkeypatch.setattr(AgentCtx, "emit", fake_ctx_emit)
+    monkeypatch.setattr("app.core.chaos.emit", fake_bus_emit)
     chaos.reset()
     return recorded
 
 
 def ctx(chaos_flags: dict | None = None):
-    return SimpleNamespace(run_id="run-test", agent="tester", chaos=chaos_flags or {})
+    return AgentCtx(run_id="run-test", agent="tester", chaos=chaos_flags or {})
 
 
 async def ok(value):
