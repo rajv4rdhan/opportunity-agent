@@ -1,4 +1,4 @@
-"""Gap cards and the instant What-If recalculation."""
+"""Gap cards and the instant What-If recalculation ("Unlock more")."""
 
 from __future__ import annotations
 
@@ -11,41 +11,60 @@ from app.services import matching
 
 def _gap_cards(gaps: list[Gap]) -> None:
     if not gaps:
-        ui.label("No gaps — every requirement is met or unknown.").classes("text-sm text-gray-500")
+        ui.label("No gaps — every requirement is met or unknown.").classes("ss-small")
         return
     for gap in gaps:
-        with ui.card().classes("w-full"):
-            ui.label(gap.requirement).classes("text-base font-semibold")
-            ui.label(f"Unlocks {len(gap.unlocks)}: {', '.join(gap.unlocks)}").classes("text-sm")
-            ui.label(gap.suggestion).classes("text-sm text-gray-500")
+        with ui.element("div").classes("ss-card ss-card--tight w-full"):
+            with ui.row().classes("w-full items-start justify-between gap-2"):
+                ui.label(gap.requirement).classes("text-base font-semibold")
+                ui.label(f"unlocks {len(gap.unlocks)}").classes("ss-pill is-running")
+            if gap.unlocks:
+                with ui.row().classes("flex-wrap gap-1 mt-1"):
+                    for name in gap.unlocks[:6]:
+                        ui.label(name).classes("ss-chip")
+            ui.label(gap.suggestion).classes("ss-small mt-1")
 
 
 class GapsWhatIf:
     def __init__(self, run_id: str, report: FinalReport) -> None:
         self.run_id = run_id
         self.report = report
-        self.before = {opportunity.id: opportunity.eligibility for opportunity in report.all_opportunities}
+        self.before = {
+            opportunity.id: opportunity.eligibility for opportunity in report.all_opportunities
+        }
         self.result = None
 
-        ui.label("What one improvement unlocks").classes("text-lg font-semibold")
+        ui.label("Unlock more").classes("ss-h2")
+        ui.label(
+            "One realistic improvement can change several decisions. Recalculate instantly; "
+            "no LLM calls."
+        ).classes("ss-small")
         self.gap_container = ui.column().classes("w-full gap-2")
         with self.gap_container:
             _gap_cards(report.gaps)
 
         profile = report.profile
-        with ui.row().classes("w-full gap-4 items-end"):
-            self.cgpa = ui.number("CGPA", value=profile.cgpa, step=0.1, min=0).classes("w-32")
-            self.ielts = ui.number("IELTS", value=profile.test_scores.ielts, step=0.5, min=0, max=9).classes("w-32")
-            self.toefl = ui.number("TOEFL", value=profile.test_scores.toefl, step=1, min=0, max=120).classes("w-32")
-            self.gre = ui.number("GRE", value=profile.test_scores.gre, step=1, min=0, max=340).classes("w-32")
-            self.work = ui.number(
-                "Work experience (years)", value=profile.work_experience_years, step=0.5, min=0
-            ).classes("w-48")
-            ui.button("Recalculate", icon="calculate", on_click=self.recalculate).props("color=primary")
+        with ui.element("div").classes("ss-card ss-card--tight w-full mt-2"):
+            ui.label("What if?").classes("ss-small")
+            with ui.row().classes("w-full items-end gap-3 flex-wrap"):
+                self.cgpa = ui.number("CGPA", value=profile.cgpa, step=0.1, min=0).classes("w-28")
+                self.ielts = ui.number(
+                    "IELTS", value=profile.test_scores.ielts, step=0.5, min=0, max=9
+                ).classes("w-28")
+                self.toefl = ui.number(
+                    "TOEFL", value=profile.test_scores.toefl, step=1, min=0, max=120
+                ).classes("w-28")
+                self.gre = ui.number(
+                    "GRE", value=profile.test_scores.gre, step=1, min=0, max=340
+                ).classes("w-28")
+                self.work = ui.number(
+                    "Work experience (years)", value=profile.work_experience_years, step=0.5, min=0
+                ).classes("w-44")
+                ui.button("Recalculate", icon="calculate", on_click=self.recalculate).props(
+                    "color=primary unelevated no-caps"
+                )
 
-        self.result = ui.label("Change a number and recalculate — no LLM calls, instant.").classes(
-            "text-sm text-gray-500"
-        )
+        self.result = ui.label("").classes("ss-small")
 
     async def recalculate(self) -> None:
         overrides = {
@@ -64,13 +83,16 @@ class GapsWhatIf:
         ]
         if newly:
             self.result.text = f"Newly unlocked: {', '.join(newly)}"
-            self.result.classes(replace="text-sm text-green-700 font-medium")
+            self.result.classes(replace="text-sm font-medium")
+            self.result.style("color: var(--ok)")
         elif gaps:
             self.result.text = "No new opportunities unlocked yet. The remaining gaps are below."
-            self.result.classes(replace="text-sm text-gray-500")
+            self.result.classes(replace="ss-small")
+            self.result.style("")
         else:
             self.result.text = "No changes in eligibility."
-            self.result.classes(replace="text-sm text-gray-500")
+            self.result.classes(replace="ss-small")
+            self.result.style("")
         self.gap_container.clear()
         with self.gap_container:
             _gap_cards(gaps)

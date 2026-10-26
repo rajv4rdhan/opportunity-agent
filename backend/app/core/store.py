@@ -136,13 +136,28 @@ async def list_runs(limit: int = 50) -> list[dict[str, Any]]:
     db = await _connect()
     try:
         cursor = await db.execute(
-            "SELECT id, created_at, status, student_name, error FROM runs ORDER BY created_at DESC LIMIT ?",
+            "SELECT id, created_at, status, student_name, error, report_json FROM runs "
+            "ORDER BY created_at DESC LIMIT ?",
             (limit,),
         )
         rows = await cursor.fetchall()
     finally:
         await db.close()
-    return [dict(row) for row in rows]
+    runs = []
+    for row in rows:
+        data = dict(row)
+        report = _loads(data.pop("report_json", None), None) or {}
+        stats = report.get("stats") or {}
+        data["duration_sec"] = stats.get("duration_sec") or 0
+        data["verified_count"] = sum(
+            1
+            for opportunity in report.get("all_opportunities", [])
+            if opportunity.get("verification") != "unverified"
+        )
+        if not data.get("student_name"):
+            data["student_name"] = (report.get("profile") or {}).get("name")
+        runs.append(data)
+    return runs
 
 
 async def median_duration_sec(limit: int = 20) -> float | None:

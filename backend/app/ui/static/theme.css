@@ -598,6 +598,16 @@ body {
   border-bottom: 0;
 }
 
+.ss-history-meta {
+  display: block;
+}
+
+@media (max-width: 700px) {
+  .ss-history-meta {
+    display: none;
+  }
+}
+
 /* ---------- composer ---------- */
 
 .ss-composer {
@@ -855,6 +865,19 @@ body {
   line-height: 1.7;
 }
 
+.ss-summary {
+  margin: 0;
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+}
+
+.ss-summary strong {
+  font-weight: 600;
+}
+
 .ss-document h1,
 .ss-document h2,
 .ss-document h3 {
@@ -862,6 +885,20 @@ body {
   font-weight: 600;
   letter-spacing: -0.01em;
   margin-top: 1.6em;
+  margin-bottom: 0.55em;
+  line-height: 1.3;
+}
+
+.ss-document h1 {
+  font-size: 28px;
+}
+
+.ss-document h2 {
+  font-size: 20px;
+}
+
+.ss-document h3 {
+  font-size: 16px;
 }
 
 .ss-document p {
@@ -1063,6 +1100,18 @@ body {
   .ss-no-print,
   .ss-no-print * {
     display: none !important;
+  }
+
+  .q-tabs {
+    display: none !important;
+  }
+
+  .q-tab-panels .q-panel {
+    display: block !important;
+  }
+
+  .q-expansion-item__content {
+    display: block !important;
   }
 
   .ss-card {

@@ -19,6 +19,7 @@ from app.models.inputs import RunForm
 from app.models.profile import TestScores
 from app.models.report import FinalReport
 from app.services import matching, runner
+from app.services.calendar import deadlines_ics
 from app.services.report import report_to_markdown
 from app.tools.graph_store import open_readonly_store
 
@@ -230,6 +231,16 @@ async def download_sop(run_id: str) -> Response:
         content=report.sop_markdown,
         media_type="text/markdown",
         headers={"Content-Disposition": 'attachment; filename="sop.md"'},
+    )
+
+
+@router.get("/runs/{run_id}/deadlines.ics")
+async def download_deadlines(run_id: str) -> Response:
+    report = await _report(run_id)
+    return Response(
+        content=deadlines_ics(report),
+        media_type="text/calendar",
+        headers={"Content-Disposition": 'attachment; filename="deadlines.ics"'},
     )
 
 
