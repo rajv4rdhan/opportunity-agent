@@ -1,470 +1,724 @@
-# AGENT PLAN v2 — ScholarSwarm: visual swarm UI + effortless intake
+# AGENT PLAN v3 — Rebuild the UI in React (professional, symmetric, unbreakable layout)
 
-> **Audience:** the AI coding agent that implements this. Read the whole file before touching code.
-> **Human tasks** (keys, checks, demo) are in `human-plan.md`.
-> **Starting point:** the backend swarm is **done and working** (see `STATUS.md`): 11 LangGraph agents, Neo4j knowledge graph, fallbacks, chaos mode, 54 passing tests, NiceGUI UI v1. **Do not rewrite the backend.** This plan replaces the UI and adds text/voice intake, plus a few improvements, with small, targeted backend changes.
+> **Audience:** the coding agent. Follow this file literally, top to bottom. Every size, color, coordinate and file name is specified on purpose. Don't improvise layout values. If something is unclear, re-read the matching section before asking.
+> **Human tasks** are in `human-plan.md`.
+> **Backend:** the swarm (LangGraph agents, Neo4j, fallbacks, chaos, SOP, calendar, what-if) **works and stays**. This plan replaces only the NiceGUI UI with a React single-page app and makes small API additions.
 
 ---
 
-## 0. Hard rules
+## 0. Hard rules (read twice)
 
-1. **Never run the app or tests on the local machine.** All execution (pytest, uvicorn, pip install, smoke runs) happens in an **E2B sandbox** via `backend/scripts/e2b_run.py` (§10). The only local command allowed is `python backend/scripts/e2b_run.py …`, which is a thin client that uploads the repo and runs commands remotely.
-2. **Don't break what works.** After every phase, the full test suite must pass in E2B. Existing tests can change only when a behavior intentionally changes; say so in the commit message.
-3. **DRY, same as v1.** The existing single-source modules still own their concerns (`core/llm.py`, `core/http.py`, `core/fallback.py`, `core/events.py`, `core/agent.py`, `services/runner.py`, `ui/agents.py`, `ui/theme.py`, `ui/components/badges.py`). New single sources added by this plan:
+1. **Never run anything on the local machine** except the thin E2B client `backend/scripts/e2b_run.py` (and `npx @e2b/cli` for the template build). `npm install`, `npm run build`, `vitest`, `playwright`, `pytest` and `uvicorn` run **only inside E2B**.
+2. **Never guess layout.** Use the exact sizes, grid columns and coordinates in §6–§11. Every page must pass the automated **layout invariant tests** in §14.3 before a phase is done.
+3. **One source of truth per concern:**
    | Concern | Only place |
    |---|---|
-   | Design tokens (colors, radius, spacing, fonts, motion) | `backend/app/ui/static/theme.css` (CSS variables) |
-   | Browser speech-to-text | `backend/app/ui/static/voice.js` + `backend/app/ui/components/voice_input.py` |
-   | Intake text helpers (coverage hints, document classification) | `backend/app/services/intake.py` |
-   | Phase grouping, hand-off labels, worker states | `backend/app/ui/agents.py` + `backend/app/ui/live_state.py` |
-   | Event replay timing | `backend/app/services/replay.py` |
-   | Calendar export | `backend/app/services/calendar.py` |
-4. **Python first.** The only non-Python files allowed are `ui/static/theme.css` and `ui/static/voice.js` (≤ 60 lines; the Web Speech API exists only in the browser). Python talks to the browser with `ui.run_javascript(...)`, and the browser talks back with NiceGUI's `emitEvent(name, payload)` → `ui.on(name, handler)`.
-5. **Professional and minimal:** neutral palette, one accent color, no gradients, no emoji in the UI chrome, no drop-shadow stacks, generous whitespace, and a consistent 8-px spacing grid. When in doubt, remove it.
-6. **Never hardcode a student.** Sample chips load `backend/samples/*`, and everything else comes from user input.
-7. **Secrets:** never print or commit keys. The repo-root `.env` (gitignored) holds every key, including `E2B_API_KEY`. The E2B runner uploads it into the sandbox as `backend/.env`, which is where `config.py` reads it.
-8. Commit after each phase with `ui: …`, `intake: …`, `test: …` style messages, ending with the attribution line the session requires.
+   | Data shapes | Python Pydantic models → OpenAPI → generated `frontend/src/api/schema.d.ts` (never hand-copy types) |
+   | HTTP calls from the browser | `frontend/src/api/client.ts` |
+   | Live run state (event reducer) | `frontend/src/state/runReducer.ts` |
+   | Agent metadata (names, roles, icons, phases, edges, layout coordinates) | `frontend/src/swarm/agents.ts` |
+   | Design tokens | `frontend/src/styles/globals.css` (`@theme` block) |
+   | Page width and gutters | the `<Container>` component (header and pages both use it) |
+   | Chaos captions | `backend/app/core/chaos.py` (`CHAOS_CAPTIONS`), served by `/api/meta` |
+   | Sample descriptions | `backend/app/services/samples.py`, served by `/api/meta` |
+4. **No ad-hoc styling.** Use Tailwind utility classes with token-based colors only (`bg-surface`, `text-muted`, `border-line`, `text-accent` …). No hex values in TSX. No inline `style={{}}` except computed geometry (React Flow, progress widths).
+5. **TypeScript strict mode.** No `any` (use `unknown` and narrow it).
+6. **Don't break the backend.** `pytest` must stay green in E2B after every phase.
+7. Commit after every phase (`ui: …`, `api: …`, `test: …`), ending each message with the attribution line the session requires. Never commit `.env`, `node_modules`, `dist`, `test-results`.
 
 ---
 
-## 1. What the user experiences (target)
+## 1. Diagnosis — why the current UI looks broken
 
-**Screen 1 — Intake (`/`)**: one calm screen with one "composer" box, like a modern chat input.
-- The user can do any of the following:
-  - **drop a resume** (and optionally a transcript),
-  - **type** a description of themselves and their goals,
-  - **press the mic and speak** (the browser's speech recognition fills the text box live),
-  - or combine them, e.g. upload a resume plus say "I want a funded MS in AI in Germany or Canada, low budget".
-- Small hint chips under the box light up as the text covers the key facts (degree, grades, goals, countries, budget, tests), so users know what's useful without filling out a form.
-- One primary button: **Find scholarships →** (also `Ctrl+Enter`).
-- Optional "Add details" disclosure (links and preferences) and a "Demo controls" disclosure (samples + Chaos Mode). Both are collapsed by default.
+I checked the v2 UI live in E2B at 1440×900 with a real Rahul run.
 
-**Screen 2 — Mission control (`/runs/{id}`)**: the swarm is visibly working.
-- **Swarm canvas:** the 11 agents laid out as a flow, grouped into five phases. The active agent glows with a pulsing ring. Each node shows a one-line live "thought" (its latest message). When one agent hands off to the next, the connecting edge animates (flowing dashes) and shows a label like "15 candidates".
-- The Verify stage expands into a **worker pool**: one small chip per parallel verifier, labelled with the website domain. Each chip moves through the stages queued → fetching → reading → verified ✓ / rejected ✗. A fallback flashes it amber.
-- **Phase bar** at the top: Understand → Plan → Research → Verify → Decide → Write, with elapsed time, ETA and counters.
-- **"What the agents understood" card**: the parsed profile appears as soon as the Profile Analyst finishes, including GitHub "hidden projects" once enrichment is done.
-- **Inline "needs your input" card** with voice support, instead of a modal popup, when the Clarifier pauses the run.
-- Side panel tabs: Activity (important events by default), Sources, Knowledge graph, Live browser.
-- When the run finishes, the canvas collapses to a one-line summary and the **results** take focus.
-
-**Results**: a summary sentence, then top-5 match cards (key facts, why-you, requirement checklist with source quotes, how to apply), all opportunities, "Unlock more" gaps with what-if, the SOP document, deadlines with **Add to calendar (.ics)**, plus Print / Download.
-
-**Replay**: any finished run can be replayed at 1×/5×/20× speed (`/runs/{id}?replay=1`), with the canvas re-animating from the stored events. This is essential for the demo video and the live judging slot, because real runs take about 10 minutes.
-
----
-
-## 2. Design system — `backend/app/ui/static/theme.css`
-
-Load once in `ui/theme.py` via `ui.add_head_html` (Google Fonts **Inter** 400/500/600, plus the stylesheet link) and `app.add_static_files("/static", <ui/static dir>)` in `main.py`.
-
-**Tokens (CSS variables on `:root`, dark overrides on `body.body--dark`, Quasar's dark class):**
-| Token | Light | Dark |
+| # | Problem seen | Root cause in code |
 |---|---|---|
-| `--bg` | `#FAFAFA` | `#0B0B0C` |
-| `--surface` | `#FFFFFF` | `#141416` |
-| `--border` | `#E4E4E7` | `#27272A` |
-| `--text` | `#18181B` | `#F4F4F5` |
-| `--muted` | `#71717A` | `#A1A1AA` |
-| `--accent` | `#4F46E5` | `#818CF8` |
-| `--accent-soft` | `#EEF2FF` | `#1E1B4B` |
-| `--ok` | `#059669` | `#34D399` |
-| `--warn` | `#D97706` | `#FBBF24` |
-| `--err` | `#DC2626` | `#F87171` |
-| `--idle` | `#D4D4D8` | `#3F3F46` |
-| `--radius` | `12px` | |
-| `--radius-sm` | `8px` | |
-| `--ease` | `cubic-bezier(.2,.8,.2,1)` | |
+| 1 | Swarm canvas: agent cards overlap, names are cut off ("Clarifie", "Matche", "Supervi"), lines run through cards and don't touch them | `swarm_canvas.py` places **fixed-pixel** nodes at **percentage** positions inside a box with `aspect-ratio`, while the SVG edges use `preserveAspectRatio="none"` (stretched). Nodes and edges live in different coordinate systems. At an 8/12 column (~720px), each "column" is ~120px but a node needs ~184px. |
+| 2 | The verifier worker pool is squeezed into a ~120px node; its stats stack vertically ("Verifiers · 5 / running · 1 / verified · 2 …") | Same as #1, plus the pool is rendered inside a node that can't grow. |
+| 3 | Page looks lopsided: the left column (canvas) ends at ~300px height, the right column (profile + tabs) runs to ~1,200px, leaving a huge empty area bottom-left | Two columns with independent heights; no equal-height rows. |
+| 4 | Header logo and nav don't line up with page content on the home page | Header inner is 1200px wide; home content is a separate 760px column. Different containers. |
+| 5 | Activity text is clipped at the right edge of the panel | Fixed-width rows with `overflow: hidden` and no wrapping or line-clamp. |
+| 6 | Duplicate titles ("Activity" tab, then an "Activity" heading) and stats strip placed far below, detached from context | No layout system; components added ad hoc. |
+| 7 | Composer toolbar: primary button not right-aligned, language selector more prominent than the mic, a drop-zone strip awkwardly inside the box | Flex rows without a defined left/right structure. |
+| 8 | Global feel: Quasar defaults leaking through (font sizes, spacing, focus styles) and a 1,126-line hand-written CSS fighting them | NiceGUI/Quasar component styles vs. custom CSS overrides. |
+| 9 | **The app was killed for running out of memory (OOM) in the default E2B sandbox** (≈470 MB RAM): uvicorn reached ~390 MB during a real run, and `pip install` also OOMs | The default E2B template is too small. Fixed in §15 with a custom template (4 GB). |
 
-**Type scale:** 12 / 14 (body) / 16 / 20 / 28 / 36 px, with weights 400/500/600 only, and `font-feature-settings: "tnum"` for counters.
-
-**Reusable classes (the only place visual styling lives):**
-- `.ss-card`: surface, 1px border, radius, 24px padding, no shadow.
-- `.ss-pill`: status pill (dot + text). Modifiers `.is-running .is-done .is-failed .is-waiting .is-idle .is-skipped` map to tokens.
-- `.ss-node`: swarm node card (200×64), `.is-running` adds an accent ring with a `pulse` keyframe (2s), `.is-done` adds a check, `.is-failed` adds an error border.
-- `.ss-edge` (SVG path): `--idle` stroke. `.is-active` adds the accent stroke plus `stroke-dasharray: 6 6` and a `dash-flow` keyframe (1s linear infinite). `.is-loop` is dashed and curved.
-- `.ss-worker`: 28px-tall chip with a state dot; `.is-fetching .is-reading .is-verified .is-rejected .is-fallback`.
-- `.ss-composer`: large rounded box; `:focus-within` shows the accent border.
-- `.ss-hint` chip, plus `.is-covered` (ok color and a check icon).
-- `.ss-mic`: round button; `.is-listening` adds a red dot and a soft pulse.
-- `@media (prefers-reduced-motion: reduce)` disables every animation.
-- `@media print`: hide header, nav, canvas and buttons; show the results only.
-
-**Rules:** Quasar components get `flat`/`unelevated`/`outline` props, never default shadows. Icons are Material Symbols Rounded (`sym_r_*` names) only. Status is always shown as color **plus** icon/text, never color alone.
-
-`ui/theme.py` `frame()` v2: a thin white top bar (56px, bottom border) with the wordmark "ScholarSwarm" (600 weight, accent dot) on the left and "New search · History · theme toggle" on the right. The content column is `max-w-[1200px] mx-auto px-6 py-8`. The colored indigo header from v1 is removed.
+**Decision:** replace NiceGUI with a **React + Vite + TypeScript + Tailwind v4 + shadcn/ui + React Flow** single-page app. React Flow has one coordinate system for nodes and edges, automatic `fitView`, and real custom nodes, which removes problems 1–2 by construction. A strict container and equal-height row grid removes 3–6. shadcn/ui gives professional, consistent primitives (8).
 
 ---
 
-## 3. Backend changes (small, targeted)
-
-### 3.1 `models/inputs.py` — `RunForm`
-Add:
-- `description: str | None = None`: free text from typing or speech (max 5,000 chars; trim).
-- `input_modes: list[Literal["resume", "text", "voice"]] = []`: analytics/UI only.
-
-### 3.2 `services/runner.create_run` — accept "no resume"
-Today a run needs a resume or a sample. New rule: **resume OR transcript OR description with ≥ 20 words OR sample**. Otherwise raise `ValueError("Add a resume or describe yourself in a few sentences.")`. The API (`api/runs.py`) gains a `description` form field and uses the same function.
-
-### 3.3 `services/intake.py` (new, pure functions, unit-tested)
-- `classify_document(text: str) -> Literal["resume", "transcript"]`: counts transcript signals (`semester`, `sgpa`, `cgpa`, `grade`, `credits`, `marks`, `course code`) against resume signals (`experience`, `projects`, `skills`, `education`, `@`, `github.com`). The higher count wins, and a tie goes to resume.
-- `COVERAGE` dictionary of hint → regex list, e.g.:
-  - `degree`: B.Tech, B.Sc, B.Com, BE, bachelor, master, final year
-  - `grades`: `\b\d(\.\d{1,2})?\s*(cgpa|gpa)\b`, `\b\d{2}(\.\d)?\s*%`
-  - `goal`: MS, M.Sc, MBA, PhD, master's, masters
-  - `countries`: names from a list in `intake.py`, plus "abroad" and "Europe"
-  - `budget`: lakh, ₹, INR, budget, afford, fully funded
-  - `tests`: IELTS, TOEFL, GRE, GMAT, PTE, Duolingo
-  - `projects`: project, built, GitHub, github.com
-- `coverage(text: str) -> dict[str, bool]`, used by the composer hints.
-- `word_count(text) -> int`.
-
-### 3.4 Profile Analyst + prompt — use the description
-- `agents/profile_analyst.py`: pass `description=form.get("description") or "(not provided)"` to the prompt. If **no documents** were provided, log "Building profile from your description" so it's visible on the canvas.
-- When the user uploads two files, the UI and API call `classify_document` on extracted text to decide which is the resume and which the transcript, so the user never has to label them. The classification happens in `create_run`, using `tools/pdf.extract_text`, which is synchronous and cheap.
-- `prompts/profile_extract.md`: add a `## Self-description` input block with these rules: "The self-description states the student's goals and preferences; it overrides the resume for targets (countries, degree, fields, budget). Facts like grades come from documents first; use the description only when documents lack them. Spoken text may contain transcription errors (e.g. 'see GPA' = CGPA, 'eye-elts' = IELTS); interpret sensibly but never invent numbers."
-- `merge_form` priority stays the same: **explicit form fields > LLM extraction** (which already combines documents and description).
-
-### 3.5 Worker identity for parallel verifiers (needed for the worker pool)
-- `core/agent.py` `AgentCtx`: add `worker: str | None = None`. `log`/`decide` and every `emit` made with this ctx include `worker` in `data` when it's set. Implement it once, inside `AgentCtx` or a small `ctx.emit()` helper, and have `fallback.py` and `pdf.py` use `ctx`'s helper instead of calling `emit` directly, so the worker key propagates.
-- The `@agent` decorator: when `state` has a `candidate` (the `VerifyInput` fan-out), set `ctx.worker = normalize_url(candidate.url)` and add `worker`, `title` and `domain` to the `agent_started`, `agent_finished` and `agent_failed` data.
-- The `@agent` decorator `agent_finished` data: add `counts = {key: len(value) for key, value in result.items() if isinstance(value, list)}`. Hand-off labels come from this.
-- Verifier: the final event (`opportunity_verified` / `opportunity_rejected`) carries `worker`.
-
-### 3.6 `services/replay.py` (new)
-- `async def replay_events(run_id, speed: float) -> AsyncIterator[Event]`: loads all events in order, sleeps `min((next.ts - prev.ts)/speed, 1.5s)` between them (gaps are capped so idle waits don't stall the demo), and yields each one. A pure helper `replay_delays(timestamps, speed, cap) -> list[float]` is unit-tested.
-
-### 3.7 `services/calendar.py` (new)
-- `deadlines_ics(report: FinalReport) -> str`: an RFC 5545 VCALENDAR with one all-day VEVENT per opportunity that has a `deadline`. SUMMARY is "Deadline: {name}", DESCRIPTION holds the official URL, and a VALARM fires 7 days before. CRLF line endings, stable UID `{run_id}-{opp.id}@scholarswarm`. Build the string by hand; no new dependency.
-- `api/runs.py`: add `GET /api/runs/{id}/deadlines.ics`.
-
-### 3.8 ETA (small)
-- `core/store.py`: `median_duration_sec(limit=20) -> float | None` over finished runs (`report_json.stats.duration_sec`). The UI shows "about N min" before the first event and the remaining estimate after.
-
----
-
-## 4. UI file layout (after this plan)
+## 2. Target architecture
 
 ```
-backend/app/ui/
-├─ __init__.py                # register_pages()
-├─ theme.py                   # frame() v2, loads fonts + theme.css + voice.js
-├─ agents.py                  # AGENTS, EDGES, PHASES, HANDOFF_LABELS, EVENT_STYLE, IMPORTANT_EVENTS
-├─ live_state.py              # RunView v2 + reduce_event v2 (pure)
-├─ static/
-│  ├─ theme.css
-│  └─ voice.js
-├─ components/
-│  ├─ badges.py               # restyled to .ss-pill; same function names
-│  ├─ composer.py             # NEW: text + files + mic + hints + submit
-│  ├─ voice_input.py          # NEW: mic button bound to any textarea (DRY: composer + clarifier)
-│  ├─ advanced_options.py     # NEW: links/preferences + demo controls (samples, chaos) — replaces upload_form.py & chaos_panel.py
-│  ├─ phase_bar.py            # NEW
-│  ├─ swarm_canvas.py         # NEW: replaces agent_flow.py
-│  ├─ worker_pool.py          # NEW
-│  ├─ profile_card.py         # NEW
-│  ├─ input_request.py        # NEW: inline clarifier card (replaces interrupt_dialog.py)
-│  ├─ activity.py             # replaces event_feed.py
-│  ├─ sources_panel.py        # NEW: candidates + verification status
-│  ├─ knowledge_graph.py      # restyle only
-│  ├─ live_browser.py         # restyle only
-│  ├─ run_summary.py          # replaces run_stats.py: counters + collapsed "swarm finished" line
-│  └─ results/
-│     ├─ summary.py           # NEW: one-sentence result summary
-│     ├─ top_matches.py       # redesign
-│     ├─ requirement_list.py  # NEW: ✓/✗/? checklist with quotes
-│     ├─ opportunity_table.py # restyle
-│     ├─ gaps_whatif.py       # restyle ("Unlock more")
-│     ├─ deadlines.py         # NEW: sorted list + .ics
-│     └─ sop_viewer.py        # redesign (document view)
-└─ pages/
-   ├─ home.py                 # rewritten around composer
-   ├─ run_detail.py           # rewritten: mission control + results + replay
-   └─ runs.py                 # restyle
+Browser (React SPA)
+   │  REST  /api/*            (fetch via TanStack Query)
+   │  SSE   /api/runs/{id}/events   (EventSource, live)
+   ▼
+FastAPI (backend/app/main.py)
+   ├─ /api/*            existing routers + new /api/meta, /api/runs/{id}/events.json
+   ├─ /assets/*         built JS/CSS from frontend/dist/assets   (Phase 9)
+   └─ /{anything else}  → frontend/dist/index.html (SPA fallback) (Phase 9)
+LangGraph swarm, Neo4j, SQLite: unchanged
 ```
 
-Delete `upload_form.py`, `chaos_panel.py`, `agent_flow.py`, `interrupt_dialog.py`, `event_feed.py` and `run_stats.py` **after** their replacements work. Move any logic they own, such as `UploadForm.save_attachments` or sample loading, into the new components; don't copy it.
+During development (Phases 2–8), the React dev server (Vite, port 5173) proxies `/api` to uvicorn (port 8000). NiceGUI keeps running on 8000 until Phase 9 removes it.
+
+**Kept:** all of `backend/app` except `backend/app/ui/`.
+**Deleted in Phase 9:** `backend/app/ui/` (whole folder), `nicegui` from `requirements.txt`, `backend/tests/test_ui_pages.py`, `backend/tests/ui_app.py`, `backend/tests/test_live_state.py`, `backend/tests/test_replay.py`, `backend/app/services/replay.py` (replay moves to the browser).
+**Moved:** intake `coverage()`/`COVERAGE`/`COUNTRIES` → `frontend/src/lib/coverage.ts` (Python keeps `classify_document` and `word_count`, which `runner.py` uses). `backend/tests/test_intake.py` keeps only the classify/word_count tests.
 
 ---
 
-## 5. Agent metadata — `ui/agents.py` v2
+## 3. Tech stack (exact)
 
-- `PHASES` (ordered): `understand` (profile_analyst, clarifier, github_enricher), `plan` (planner, supervisor), `research` (scout), `verify` (verifier), `decide` (matcher, ranker), `write` (sop_writer, critic, finalizer). Labels: Understand, Plan, Research, Verify, Decide, Write.
-- `AGENTS` gets new fields per agent:
-  - `phase`
-  - `role`: one plain-English line shown under the name, e.g. Scout: "Searches the web for programs"; Verifier: "Reads official pages and checks rules"; Critic: "Fact-checks the SOP".
-  - canvas position `col`/`row` on a 6-column × 3-row grid instead of pixel x/y.
+Create the app with Vite's React-TS template, then add:
 
-  Layout:
-  | Agent | Column | Row |
-  |---|---|---|
-  | profile_analyst | 0 | 1 |
-  | clarifier | 0 | 0 |
-  | github_enricher | 0 | 2 |
-  | planner | 1 | 1 |
-  | supervisor | 1 | 2 |
-  | scout | 2 | 1 |
-  | verifier | 3 | 0–2 (spans all rows; holds the worker pool) |
-  | matcher | 4 | 1 |
-  | ranker | 4 | 2 |
-  | sop_writer | 5 | 0 |
-  | critic | 5 | 1 |
-  | finalizer | 5 | 2 |
-- `EDGES` unchanged (`supervisor→planner` and `critic→sop_writer` are loops).
-- `HANDOFF_LABELS`: maps a state key to a template: `plan` → "{n} search queries", `candidates`/`pending_verify` → "{n} candidates", `opportunities` → "{n} opportunities", `rejected` → "{n} rejected", `gaps` → "{n} gaps", `top5` → "top {n}", `critic_notes` → "{n} notes". `profile` and `github` (non-list) → "profile" / "GitHub insights".
-- `IMPORTANT_EVENTS = {decision, fallback, retry, chaos_injected, interrupt, resumed, opportunity_verified, agent_failed, tool_error, run_started, run_finished, run_failed, agent_skipped}`.
-- `EVENT_STYLE` keeps the same mapping, switched to `sym_r_*` icons and token color names (`accent`, `ok`, `warn`, `err`, `muted`).
-
----
-
-## 6. Live state — `ui/live_state.py` v2 (pure, unit-tested)
-
-`RunView` adds:
-- `phase: str | None` and `phase_done: set[str]`. A phase is done when all its non-skipped agents that ever started are done and a later phase has started, or when the run finished.
-- `thoughts: dict[agent_id, str]`: the latest `log`/`decision`/`tool_call` message per agent, trimmed to 90 chars. For verifiers, it's the latest per worker.
-- `workers: dict[worker_key, Worker]`, where `Worker(domain, title, state, message)` and state is one of `queued | fetching | reading | verified | rejected | failed`. Transitions:
-  | Event | New worker state |
-  |---|---|
-  | `candidate_found` | queued (key = normalized URL) |
-  | `agent_started` (verifier) | fetching |
-  | `tool_call` with label starting `fetch` | fetching |
-  | `tool_result` from fetch | reading |
-  | `tool_call` with label `llm` | reading |
-  | `fallback` | stays the same, with `flash = "fallback"` for the next 2 ticks |
-  | `opportunity_verified` | verified |
-  | `opportunity_rejected` | rejected |
-  | `agent_failed` | failed |
-- `handoffs: list[Handoff(src, dst, label, at_event_id)]`. When `agent_started` arrives for agent B and the most recent `agent_finished` came from agent A with `(A, B)` in `EDGES`, append a hand-off whose label comes from A's `counts` through `HANDOFF_LABELS`, using the first key that maps. The canvas marks an edge active for about 2.5 seconds after its hand-off (a tick counter, not wall time, so tests stay deterministic).
-- `active_edges: set[tuple[str, str]]`: edges into currently running agents plus recent hand-offs.
-- `profile_snapshot: dict | None`: filled from `agent_finished` of profile_analyst/github_enricher when the event data has `profile_preview` (see the note below).
-- `interrupt` unchanged.
-
-**Backend note:** in the `@agent` decorator, when `result` has a `profile`, add `profile_preview` to the `agent_finished` data. It contains: name, current_degree, major, university, cgpa, cgpa_scale, target_degree, target_fields, target_countries, test_scores (non-null only), top 8 skills, project names (resume and github, with source), and budget. Keep it under 2 KB. This is the only extra data the profile card needs, and it keeps the UI from reading LangGraph state.
-
-`reduce_event` still returns the set of dirty component names: `canvas, phase, activity, sources, profile, input, browser, graph, summary, results`.
-
----
-
-## 7. Components (behavior specs)
-
-### 7.1 `voice_input.py` + `static/voice.js`
-- `voice.js` defines `window.ssVoice = { start(lang), stop(), supported() }`:
-  - Uses `window.SpeechRecognition || window.webkitSpeechRecognition` with `continuous = true` and `interimResults = true`. `lang` defaults to `en-IN`.
-  - `onresult` → `emitEvent('ss_voice', {final, interim})`, where final is the concatenated final transcripts since start and interim is the current interim text.
-  - `onend` → `emitEvent('ss_voice_end', {})`. Chrome auto-stops after silence; that's fine.
-  - `onerror` → `emitEvent('ss_voice_error', {error})`. Map `not-allowed` to "Microphone permission denied" and `no-speech` to "Didn't catch that — try again".
-  - Does nothing else: no DOM manipulation, no styling.
-- `VoiceInput(target_textarea, lang_select: bool = True)` in Python:
-  - Renders `.ss-mic` with a tooltip "Speak (browser speech recognition)" and a small language menu: English (India) `en-IN`, English (US) `en-US`, Hindi `hi-IN`.
-  - Click toggles start/stop via `ui.run_javascript("ssVoice.start('en-IN')")`.
-  - `ui.on('ss_voice', …)`: shows the interim text in a muted live line under the textarea, and on final text appends it to the textarea value at the position it had when recording started, with one space separator.
-  - On page load it calls `ssVoice.supported()`. If false, the mic is disabled with the tooltip "Voice input works in Chrome or Edge".
-  - Several VoiceInputs on one page (composer + clarifier): only one can listen at a time, so the Python side tracks the active instance and filters events to it.
-  - Speech needs a secure context (HTTPS or localhost). The E2B public URL is HTTPS.
-
-### 7.2 `composer.py` (intake heart)
-Layout inside `.ss-card .ss-composer`:
-1. **Attachment chips row**, hidden when empty: each chip shows a file icon, file name, auto-detected role ("Resume"/"Transcript", clickable to swap) and an ✕. PDFs only, max 2 files, max 10 MB each.
-2. **Textarea**: `autogrow`, min 4 rows, borderless, placeholder:
-   *"Tell us about yourself — your degree, grades, projects, and what you want to study and where. Or just drop your resume here."*
-3. **Live interim speech line** (muted, italic) while listening.
-4. **Toolbar row**:
-   - left: "Attach" (paperclip button opening a hidden `ui.upload`), `VoiceInput`, and a word counter (muted).
-   - right: primary button **Find scholarships** (`sym_r_arrow_forward`), disabled until valid.
-5. **Drag-and-drop:** the whole composer is the drop zone. Use `ui.upload` with `.props('accept=.pdf multiple max-files=2 auto-upload flat')` styled to overlay the composer and shown only on dragover. If that's not feasible in NiceGUI, use a visible dashed drop area that appears only when there are no attachments.
-6. **Hint chips** under the card: Degree · Grades · Goal · Countries · Budget · Tests · Projects. They update from `intake.coverage(text)` with a 300 ms debounce on input. When a resume is attached, chips show "from resume" in a muted state instead, because the profile will come from it.
-7. **Validity:** at least one file, or 20+ words, or a sample selected. Otherwise the button stays disabled with the helper text "Add a resume or a few sentences about you."
-8. `Ctrl/Cmd+Enter` submits (`ui.keyboard` or a textarea keydown handler).
-9. `value() -> ComposerValue(description, files: list[(bytes, filename)], modes)`.
-
-### 7.3 `advanced_options.py`
-Two quiet text-button disclosures under the composer:
-- **Add details (optional):** GitHub URL, LinkedIn/portfolio, target countries (multi-select with free entry), degree, fields, budget (INR/yr), IELTS/TOEFL/GRE. Values override the LLM extraction exactly as in v1 (`merge_form`).
-- **Demo controls:** sample chips (from `backend/samples/*`; clicking one fills the details plus a short description and marks the sample) and Chaos Mode switches (reuse `chaos.CHAOS_POINTS` with v1's one-line captions).
-- `to_form(description, modes) -> RunForm`. Saving files to `data/uploads/pending/<uuid>/` lives here (moved from v1 `UploadForm.save_attachments`).
-
-### 7.4 `pages/home.py`
-- `frame("New search")`, then a centered column with max width 760px:
-  - eyebrow (muted, 12px uppercase): "AI scholarship research"
-  - H1 (36/600): "Find funding you actually qualify for."
-  - sub (16, muted): "Eleven AI agents read your profile, search official sources, verify every requirement and draft your application."
-  - Composer, then Advanced options.
-  - Trust row (12px muted, icons): "Official sources only · Every fact cited · Your files stay in this session".
-  - A tiny provider status line appears only in Demo controls, never on the main screen.
-- Launch → `runner.create_run(...)` → navigate to `/runs/{id}`. Errors show via `ui.notify(type="negative")`.
-
-### 7.5 `phase_bar.py`
-- A horizontal stepper with 6 steps (from `PHASES`). States: done (ok check), active (accent dot pulsing + label 600), pending (idle).
-- Right side: elapsed `mm:ss` (ticks from `started_at`), ETA "~N min left" (median duration − elapsed, floored at "almost done"), and status pill.
-- Below 768px it shows only the active phase name plus "step k of 6".
-
-### 7.6 `swarm_canvas.py` (the centerpiece)
-- Container: `.ss-card`, `position: relative`, `aspect-ratio: 1200 / 440`, `w-full`.
-- **Edges layer:** one inline SVG rendered once with `ui.html`, `viewBox="0 0 1200 440"`, `preserveAspectRatio="none"`, `vector-effect: non-scaling-stroke` on paths. Each edge is a `<path id="edge-{src}-{dst}" class="ss-edge">`: a cubic Bezier from the right-middle of the source node to the left-middle of the target, and curved loop paths below the row for loops. Compute coordinates in Python from the grid (`col` × 200 + gutter, `row` × 140 + 30).
-- **Edge updates:** when `view.active_edges` changes, call a single `ui.run_javascript` that sets `class` on the changed paths (`ss-edge is-active` / `ss-edge`). Send only the diff.
-- **Hand-off label:** an absolutely positioned small pill at the edge midpoint showing the label (e.g. "15 candidates"), fading out after the activity window. Keep at most 2 visible.
-- **Nodes:** NiceGUI elements absolutely positioned with percentage `left/top` from the same grid, using class `.ss-node`. Content:
-  - icon in a 32px rounded square (accent-soft background when running)
-  - name (14/600) and role (12, muted, one line)
-  - **thought line** (12, muted, single-line ellipsis) from `view.thoughts[agent]`. A "typing" fade-in when it changes is optional and CSS only.
-  - status corner badge: running spinner (Quasar `q-spinner` 14px), done check, failed error, skipped dash, waiting (clarifier) "needs you".
-  Update by changing classes and text only; never rebuild the node tree on each tick.
-- **Verifier node** spans rows 0–2 and contains the `WorkerPool`.
-- Supervisor decisions (`decision` events from supervisor/critic routing) briefly show a callout pill next to the supervisor node: "Only 6 verified → re-planning" for 4 seconds, and the loop edge activates.
-- **Mobile (< 900px):** hide the canvas and render the same agents as a vertical timeline (icon, name, status, thought), plus the worker pool as a chip list. Both views update from the same `RunView` (one update method calling two renderers).
-- **When the run is finished:** collapse to `run_summary` with a "Show swarm" toggle that re-expands the canvas in its final state.
-
-### 7.7 `worker_pool.py`
-- A grid of `.ss-worker` chips (2 columns inside the verifier node; up to 14 visible, then "+N more"). Each chip shows the domain (e.g. `daad.de`) and a state dot. The tooltip shows the title, current message and URL. Verified chips get an ok check; rejected chips fade (60% opacity) and their tooltip shows the reason.
-- Header line: "Verifiers · 7 running · 5 verified · 2 rejected".
-
-### 7.8 `profile_card.py`
-- Appears with a fade-in when `view.profile_snapshot` is set. Title: "What the agents understood".
-- Two-column key facts: degree · university · CGPA · target · countries · tests · budget.
-- Skills as small chips (max 8). Projects split into "From resume" and "Found on GitHub" (hidden gems, with a GitHub icon).
-- Missing items shown as muted "Not provided: IELTS score" lines. This is informational; the Clarifier only asks for critical ones.
-- Placement: the right column, above the tabs.
-
-### 7.9 `input_request.py` (inline clarifier)
-- Shown when `view.interrupt` is set. It's an accent-bordered card at the top of the right column, and the page scrolls to it.
-- Title: "The swarm needs one detail". Each question renders as:
-  - `multi` → chips input with suggestions; for countries, reuse the `intake.py` list.
-  - `text` → input plus a `VoiceInput` (so the user can speak the answer)
-  - `number` → number input
-- Buttons: "Continue" (primary) and "Skip" (text). Keep v1's resume-race protection (`_awaiting_resume`).
-- The clarifier canvas node shows the status "needs you" (`.is-waiting`).
-
-### 7.10 `activity.py`
-- A minimal list: time (mm:ss since start, tabular), agent name (500), message. Icon and color come from `EVENT_STYLE`.
-- Segmented control: **Important** (default, `IMPORTANT_EVENTS`) / **All**, plus an agent filter dropdown.
-- New rows append without rebuilding; auto-scroll unless the user has scrolled up (show a "Jump to latest" pill).
-- Fallback, retry and chaos rows get a left `--warn` border. Errors get `--err`. Decisions get `--accent`.
-
-### 7.11 `sources_panel.py`
-- A list of every candidate with its domain favicon (`https://www.google.com/s2/favicons?domain={domain}&sz=32` as an `img` src, with a placeholder on error), title, provider, an "official" check, and the current worker state pill. Verified items link to the official URL.
-
-### 7.12 `run_summary.py`
-- While running: a counter row (tabular numbers) of LLM calls · pages read · verified · recoveries (retries + fallbacks) · cost.
-- When finished: a single line "Swarm finished in 10m 12s · 11 agents · 109 tool calls · 6 automatic recoveries · $0.12" plus "Show swarm" and "Replay" buttons.
-
-### 7.13 Results (`components/results/*`)
-- `summary.py`: one sentence built deterministically (no LLM), e.g. "We verified **12 opportunities** from official sources. **5 are strong matches**. The nearest deadline is **15 Nov 2026** (DAAD EPOS)." Then three stat tiles: Verified · Eligible now · Unlockable with one step (from gaps).
-- `top_matches.py` (one card per match, vertical list, not a grid):
-  - Header row: rank (28/600, muted), name (20/600), org · country, and a match score as "87% match" with a thin bar.
-  - Key-facts row: Funding (type + text) · Deadline (`deadline_badge` + text) · Eligibility pill · Verification pill.
-  - "Why you": the `why_it_fits` markdown, limited to 3 lines with "more".
-  - Expandable "Requirements" (`requirement_list.py`): each requirement shows ✓/✗/? (ok/err/muted), the description, the evidence, and an info icon whose tooltip has the exact source quote and domain.
-  - Expandable "How to apply": numbered steps and a documents checklist.
-  - Footer: sources (domains with quote tooltips, up to 4), "Graph evidence" path chips if any, and **Apply** (primary, opens a new tab).
-- `opportunity_table.py`: same data, restyled. Dense table, filter chips (Eligible / Partial / All, country), "Rejected (N)" disclosure.
-- `gaps_whatif.py` → title "Unlock more": cards such as "IELTS ≥ 6.5 → unlocks 4 opportunities" with the suggestion text, and the what-if inputs inline with a "Recalculate" button (logic unchanged).
-- `deadlines.py`: a list sorted by date (expired hidden behind a toggle), each row showing days left, name and date. A button "Add all to calendar" downloads `services.calendar.deadlines_ics` via `ui.download`.
-- `sop_viewer.py`: document look (`max-w-prose`, 16/1.7 line height, generous margins), a "For: {program}" header, word count, and revision count. Critic notes in a side list (or below on mobile). Copy and Download .md. `[ADD: …]` placeholders are highlighted with an accent-soft background so the student sees what to fill in.
-- Page actions, top right of results: **Download report (.md)**, **Print** (`ui.run_javascript('window.print()')`, which uses the print CSS), **Add deadlines to calendar**.
-
-### 7.14 `pages/run_detail.py` v2
-Layout (desktop ≥ 1100px):
-```
-[ frame header ]
-[ Name · status pill ........................ phase bar (wide) .... elapsed/ETA ]
-[ swarm canvas (8/12 width) ][ right column (4/12): input_request? · profile_card · tabs(Activity | Sources | Graph | Browser) ]
-[ run_summary counters ]
-[ results (when finished) ]
-```
-Tablet/mobile: a single column (phase bar, mobile timeline, input request, profile card, tabs, results).
-- **Tick loop:** keep v1's `ui.timer(settings.ui_poll_seconds, tick)` polling `store.events_after`. Route dirty flags to component `update()` methods only.
-- **Replay mode** (`?replay=1&speed=5`): don't poll the store. Instead, start a background task that iterates `replay.replay_events(run_id, speed)` and applies `reduce_event` and the updates. Show a "Replay ×5" pill with speed buttons (1× / 5× / 20×) and Restart. At the end, render the results as normal. Replay works for finished and failed runs only; for other runs, fall back to live mode.
-- The browser tab title updates with progress: `ui.page_title(f"({phase_index}/6) {name} · ScholarSwarm")`, and "✓ Results ready · ScholarSwarm" at the end.
-- When the run finishes, scroll the results into view (`ui.run_javascript("document.getElementById('results').scrollIntoView({behavior:'smooth'})")`) unless in replay.
-
-### 7.15 `pages/runs.py`
-A minimal table: student, started, duration, verified count, status pill, and the actions Open and Replay. Empty state: "No searches yet" plus a "Start a search" button.
-
----
-
-## 8. Improvements included (beyond the request) and why
-
-| # | Improvement | Why it matters |
-|---|---|---|
-| 1 | One composer for resume, text and voice | The least effort for the user; voice is natural for describing goals |
-| 2 | Auto-detects resume vs transcript | One fewer decision for the user |
-| 3 | Live coverage hints | Guides users toward useful input without a form |
-| 4 | "What the agents understood" card | Transparency; the judge sees profile enrichment (25 marks) happen |
-| 5 | Hand-off animations and labels | Makes "agents exchange information" visible (30 marks) |
-| 6 | Parallel worker pool | Makes parallelism and per-site verification visible |
-| 7 | Inline, voice-enabled clarifier | Human-in-the-loop without a jarring modal |
-| 8 | Requirement checklist with quotes | Trustworthy sources, visibly (20 marks) |
-| 9 | Replay mode | A reliable 5-minute demo and a safe live judging slot |
-| 10 | Add to calendar (.ics) | A practical next step for the student |
-| 11 | Print/PDF-friendly report | Shareable output without a new dependency |
-| 12 | ETA plus tab-title progress | Users can switch tabs while the run continues |
-| 13 | Reduced motion, color plus icon status, keyboard submit | Accessibility and polish |
-
-Not included on purpose (scope): user accounts, a mobile app, multi-language UI text, and editing the profile mid-run.
-
----
-
-## 9. Tests to add or update (all run in E2B)
-
-| File | Covers |
+| Package | Purpose |
 |---|---|
-| `tests/test_intake.py` | `classify_document` (resume vs transcript samples from `backend/samples/*` PDFs via `extract_text`), `coverage` true/false cases including spoken-style text ("eight point two CGPA" is acceptable as not covered; document this), `word_count` |
-| `tests/test_runner.py` (update) | `create_run` accepts a description-only run (≥ 20 words), rejects an empty one, and keeps sample runs working |
-| `tests/test_live_state.py` (update) | worker state transitions, hand-off creation from `counts`, the active edge window, phase progress, thoughts trimming, profile_snapshot, replay of the same events giving the same final view |
-| `tests/test_agent_decorator.py` (new) | `counts` and `profile_preview` in `agent_finished`, `worker` in verifier events, GraphInterrupt still re-raised |
-| `tests/test_replay.py` | `replay_delays` capping and speed scaling |
-| `tests/test_calendar.py` | ICS has VCALENDAR/VEVENT/VALARM, CRLF, one event per dated opportunity, none for undated ones |
-| `tests/test_ui_pages.py` (new) | NiceGUI `user` fixture (`pytest_plugins = ["nicegui.testing.user_plugin"]`; follow the NiceGUI testing docs for the installed version): `/` renders the composer; the submit button is disabled with an empty composer; typing 25 words enables it; `/runs/{id}` for a seeded finished run shows the summary and top-5 names; `?replay=1` renders the replay pill. Seed runs and events directly with `store` functions in a temp `DATA_DIR`. |
+| `react`, `react-dom` (19.x) | UI |
+| `react-router` (7.x) | routing (`createBrowserRouter`) |
+| `@tanstack/react-query` (5.x) | server state |
+| `@xyflow/react` (12.x) | swarm canvas |
+| `motion` (12.x) | small enter/exit animations |
+| `lucide-react` | icons (only icon set allowed) |
+| `react-markdown` + `remark-gfm` | SOP and "why it fits" text |
+| `react-force-graph-2d` | knowledge graph |
+| `sonner` | toasts |
+| `clsx`, `tailwind-merge`, `class-variance-authority` | class helpers (shadcn standard `cn()`) |
+| `date-fns` | dates ("in 20 days", "15 Nov 2026") |
+| `@fontsource-variable/inter`, `@fontsource-variable/jetbrains-mono` | self-hosted fonts |
+| dev: `typescript`, `vite`, `@vitejs/plugin-react`, `tailwindcss` (v4), `@tailwindcss/vite`, `vitest`, `jsdom`, `@testing-library/react`, `@testing-library/user-event`, `@playwright/test`, `openapi-typescript` | build and tests |
 
-Target: all old and new tests pass (≥ 70 tests).
+**shadcn/ui** (`npx shadcn@latest init`, style "new-york", base color "zinc", CSS variables on). Add exactly these components: `button card badge tabs sheet select switch slider tooltip accordion table separator scroll-area textarea input label dropdown-menu popover skeleton toggle-group`.
 
----
-
-## 10. E2B execution — `backend/scripts/e2b_run.py`
-
-A thin local client (the only local execution allowed). Use the `e2b` Python SDK (`pip install e2b`, installed into a separate local venv or via `pipx`; never into the project venv). Check https://e2b.dev/docs for the installed SDK version's exact method names (`Sandbox.create`, `sandbox.files.write`, `sandbox.commands.run`, `sandbox.get_host`, `Sandbox.connect`, `sandbox.kill`, `set_timeout`).
-
-**Subcommands:**
-| Command | What it does |
-|---|---|
-| `up` | Creates a sandbox (timeout 60 min) and saves its id to `backend/data/.e2b_sandbox` (gitignored). Uploads the repo as a tar: everything tracked by git plus uncommitted changes, excluding `.git`, `.venv`, `backend/data`, `__pycache__`. Uploads the repo-root `.env` to `backend/.env`. Extracts to `/home/user/app`. Creates the venv and runs `pip install -r backend/requirements.txt`, then `python -m playwright install --with-deps chromium` (use `sudo` if required). Prints the sandbox id. |
-| `sync` | Re-uploads changed files to the existing sandbox (re-tar and extract; simple beats clever). |
-| `test [pytest args]` | Runs `cd /home/user/app/backend && .venv/bin/python -m pytest -q {args}` and streams the output. Its exit code is the pytest exit code. |
-| `serve` | Starts `uvicorn app.main:app --host 0.0.0.0 --port 8000` in the background, waits for `/api/health`, and prints `https://{sandbox.get_host(8000)}`. That URL is used for visual checks and for the human to try the app (HTTPS, so the mic works). |
-| `logs` | Tails the uvicorn log file. |
-| `run-sample <name>` | `python -m app.cli run samples/<name>` (a real end-to-end run with real keys; costs about $0.13). |
-| `down` | Kills the sandbox and deletes the id file. |
-
-**Rules:** reads `E2B_API_KEY` from the repo-root `.env` (parse simple `KEY=VALUE` lines; no dotenv dependency needed) or from the environment. Never prints the key or `.env` content. Each command's timeout comes from a flag (default 15 min for `run-sample`, 10 min for `test`).
-
-**Visual QA:** after `serve`, open the printed URL in a browser tool. Check `/` at 1440×900 and at 390×844, a replayed run (`/runs/<id>?replay=1&speed=20`) at both sizes, and dark mode. Take screenshots and compare them against §2 and §7. Fix anything that looks noisy, cramped or misaligned. Seed data for replay comes from a `run-sample` run, or from the `backend/data` of a previous run uploaded with `up --with-data` (optional flag that includes `backend/data/app.db`).
+Install with `npm install <pkg>` (latest) **inside E2B**, then commit `package.json` **and** `package-lock.json`.
 
 ---
 
-## 11. Phases (do them in order)
+## 4. Repository layout (create exactly)
 
-| Phase | Work | Acceptance (all checks in E2B) |
+```
+opportunity-agent/
+├─ e2b/
+│  ├─ e2b.Dockerfile            # §15.1
+│  └─ README.md                 # how the template is built
+├─ backend/                     # unchanged except §5
+│  └─ scripts/e2b_run.py        # §15.2 (NEW — it does not exist yet)
+└─ frontend/
+   ├─ index.html
+   ├─ package.json / package-lock.json
+   ├─ vite.config.ts            # react + tailwind plugins, /api proxy → :8000, alias @ → src
+   ├─ tsconfig.json             # strict: true
+   ├─ components.json           # shadcn
+   ├─ playwright.config.ts      # §14.2
+   ├─ public/favicon.svg        # the logo mark (§6.6)
+   ├─ e2e/
+   │  ├─ fixtures.ts            # API mocking helpers (page.route)
+   │  ├─ layout.spec.ts         # layout invariants (§14.3)
+   │  ├─ flows.spec.ts          # user flows (§14.2)
+   │  └─ screenshots.spec.ts    # writes docs/screenshots/*.png
+   └─ src/
+      ├─ main.tsx               # fonts, QueryClientProvider, RouterProvider, Toaster, theme init
+      ├─ router.tsx             # routes (§9)
+      ├─ styles/globals.css     # Tailwind import + @theme tokens (§6)
+      ├─ api/
+      │  ├─ schema.d.ts         # GENERATED (openapi-typescript) — do not edit
+      │  ├─ types.ts            # re-exports named types from schema.d.ts
+      │  ├─ client.ts           # all fetch calls
+      │  └─ queries.ts          # TanStack Query hooks
+      ├─ state/
+      │  ├─ runReducer.ts       # port of backend/app/ui/live_state.py
+      │  ├─ runReducer.test.ts
+      │  ├─ useRunStream.ts     # SSE → reducer
+      │  ├─ useReplay.ts        # events.json → reducer with timing
+      │  └─ replay.test.ts
+      ├─ swarm/
+      │  ├─ agents.ts           # port of backend/app/ui/agents.py + layout (§11)
+      │  ├─ SwarmCanvas.tsx
+      │  ├─ AgentNode.tsx
+      │  ├─ VerifierPoolNode.tsx
+      │  ├─ LaneLabelNode.tsx
+      │  ├─ FlowEdge.tsx        # normal edge with particle + label
+      │  ├─ LoopEdge.tsx        # orthogonal waypoint edge for re-plan / revise loops
+      │  └─ MobileTimeline.tsx
+      ├─ lib/
+      │  ├─ cn.ts
+      │  ├─ coverage.ts         # moved from Python intake.py
+      │  ├─ coverage.test.ts
+      │  ├─ format.ts           # durations, money, relative dates, initials
+      │  ├─ speech.ts           # useSpeechRecognition hook (Web Speech API)
+      │  └─ theme.ts            # light/dark/system
+      ├─ components/
+      │  ├─ ui/                 # shadcn generated (do not edit except via shadcn)
+      │  ├─ layout/AppShell.tsx, Container.tsx, Header.tsx, LogoMark.tsx, PageHeader.tsx
+      │  ├─ common/StatusPill.tsx, KpiTile.tsx, Panel.tsx, EmptyState.tsx, ScoreRing.tsx, SourceChip.tsx, Favicon.tsx
+      │  ├─ intake/Composer.tsx, AttachmentChip.tsx, VoiceButton.tsx, CoverageHints.tsx, SampleRow.tsx, AdvancedSheet.tsx, HowItWorks.tsx
+      │  ├─ run/RunHeader.tsx, PhaseStepper.tsx, KpiStrip.tsx, InputRequestCard.tsx, ProfilePanel.tsx, ActivityPanel.tsx, SourcesPanel.tsx, GraphPanel.tsx, BrowserPanel.tsx, ReplayBar.tsx, SwarmSection.tsx
+      │  └─ results/ResultSummary.tsx, MatchCard.tsx, RequirementList.tsx, OpportunityTable.tsx, UnlockMore.tsx, WhatIfForm.tsx, DeadlineList.tsx, SopDocument.tsx
+      └─ pages/HomePage.tsx, RunPage.tsx, HistoryPage.tsx, NotFoundPage.tsx
+```
+
+---
+
+## 5. Backend changes (small)
+
+### 5.1 New response models — `backend/app/models/api.py`
+```
+RunSummary:  id, created_at, status, student_name | None, duration_sec | None, verified_count | None
+RunDetail:   id, created_at, status, student_name | None, error | None, report: FinalReport | None, pending_questions: dict | None
+SampleInfo:  name, label, description, form: dict
+ChaosPoint:  key, label, caption
+MetaResponse: providers: dict[str, bool], samples: list[SampleInfo], chaos_points: list[ChaosPoint], median_duration_sec: float | None
+```
+Set `response_model=` on: `GET /api/runs` (list[RunSummary]), `GET /api/runs/{id}` (RunDetail), `GET /api/meta` (MetaResponse), `GET /api/runs/{id}/events.json` (list[Event]). Make `store.list_runs` also compute `duration_sec` and `verified_count` from `report_json` (`stats.duration_sec`, `len(all_opportunities)`), with `None` when there's no report.
+
+### 5.2 New endpoints (in `api/runs.py`, or a new `api/meta.py` router)
+- `GET /api/meta` → `MetaResponse`:
+  - `providers`: the same logic as the old home page provider row (`settings.configured`, with GitHub via `resolve_token()`).
+  - `samples`: read `backend/samples/*/form.json`. `description` comes from `services/samples.sample_description(name, form)`; move `_sample_description` there from `ui/pages/home.py`.
+  - `chaos_points`: from `core/chaos.CHAOS_POINTS` plus `CHAOS_CAPTIONS` (move captions and labels from `ui/components/advanced_options.py` into `core/chaos.py`).
+  - `median_duration_sec`: `store.median_duration_sec()`.
+- `GET /api/runs/{id}/events.json` → all stored events in order (used by replay and as test fixtures).
+- Keep every existing endpoint unchanged: `POST /api/runs`, `GET /api/runs/{id}/events` (SSE), `POST /resume`, `GET /graph`, `POST /whatif`, `report.md`, `sop.md`, `deadlines.ics`, `/api/samples`, `/api/health`.
+
+### 5.3 SPA serving (Phase 9 only)
+In `main.py` remove `ui.run_with` and `register_pages`. Then:
+- `FRONTEND_DIST = REPO_ROOT / "frontend" / "dist"`.
+- If it exists: mount `StaticFiles(directory=FRONTEND_DIST / "assets")` at `/assets`, plus a catch-all `GET /{path:path}` registered **after** the API routers. It returns a 404 JSON for paths starting with `api/`, a file from `dist` if it exists (favicon.svg), otherwise `index.html` with `Cache-Control: no-cache`.
+- If it doesn't exist: `GET /` returns a plain message "Frontend not built. Run e2b_run.py build."
+
+### 5.4 Python tests
+- Add `tests/test_api_meta.py`: meta shape, the samples list contains `rahul` with a non-empty description, and chaos points have captions.
+- Add `tests/test_api_events_json.py`: seed 3 events with `store.insert_event`, then GET returns them in order.
+- Phase 9: add `tests/test_spa.py` (temp `dist/index.html` via monkeypatching `FRONTEND_DIST`): `/runs/abc` returns index.html; `/api/nope` returns 404 JSON.
+- Phase 9: delete the UI tests listed in §2.
+
+---
+
+## 6. Design system — `frontend/src/styles/globals.css`
+
+### 6.1 Tokens (Tailwind v4 `@theme` + dark overrides on `.dark`)
+| Token (Tailwind name) | Light | Dark | Used for |
+|---|---|---|---|
+| `--color-canvas` | `#FAFAFA` | `#09090B` | page background |
+| `--color-surface` | `#FFFFFF` | `#18181B` | cards, panels |
+| `--color-subtle` | `#F4F4F5` | `#27272A` | icon tiles, table headers, hover |
+| `--color-line` | `#E4E4E7` | `#27272A` | all borders |
+| `--color-line-strong` | `#D4D4D8` | `#3F3F46` | idle edges, inputs |
+| `--color-ink` | `#18181B` | `#FAFAFA` | primary text |
+| `--color-muted` | `#71717A` | `#A1A1AA` | secondary text |
+| `--color-accent` | `#4F46E5` | `#818CF8` | primary actions, running state |
+| `--color-accent-soft` | `#EEF2FF` | `#1E1B4B` | running tiles, selected |
+| `--color-ok` | `#059669` | `#34D399` | done, verified, eligible |
+| `--color-ok-soft` | `#ECFDF5` | `#052E2B` | |
+| `--color-warn` | `#D97706` | `#FBBF24` | fallback, partial, waiting |
+| `--color-warn-soft` | `#FFFBEB` | `#2D1B04` | |
+| `--color-err` | `#DC2626` | `#F87171` | failed, not eligible |
+| `--color-err-soft` | `#FEF2F2` | `#2B0B0B` | |
+| `--font-sans` | `"Inter Variable", system-ui, sans-serif` | | |
+| `--font-mono` | `"JetBrains Mono Variable", ui-monospace, monospace` | | |
+| `--radius-card` | `12px` | | cards, panels |
+| `--radius-control` | `8px` | | buttons, inputs |
+| `--shadow-card` | `0 1px 2px rgb(0 0 0 / 0.04)` | `none` | the ONLY shadow |
+
+Map shadcn's variables (`--background`, `--foreground`, `--primary`, `--border`, `--ring`, …) to these tokens so shadcn components match automatically.
+
+### 6.2 Typography (only these)
+| Name | Class recipe | Use |
 |---|---|---|
-| **0. Sandbox** | Write `scripts/e2b_run.py`. `up`, then `test`. | The existing 54 tests pass in E2B. |
-| **1. Design system** | `static/theme.css`, `theme.py` v2 (fonts, CSS, static mount in `main.py`), restyle `badges.py` to `.ss-pill`. | `serve`: v1 pages render with the new frame; screenshots look clean in light and dark. |
-| **2. Backend intake** | `RunForm.description`, `create_run` rule, `services/intake.py`, profile analyst + prompt, API field, tests. | New tests pass; `run-sample` still works; a description-only run via the API produces a sensible profile (check the `profile_analyst` events). |
-| **3. Composer + voice** | `voice.js`, `voice_input.py`, `composer.py`, `advanced_options.py`, `home.py` v2; delete `upload_form.py` and `chaos_panel.py`. | `/` works: attach 2 PDFs (roles auto-detected), type text (hints update), mic works in Chrome on the E2B URL, sample chips fill details, launch navigates to the run. UI tests pass. |
-| **4. Event enrichment** | §3.5 worker identity, `counts`, `profile_preview`; `live_state.py` v2 and tests. | Decorator and live_state tests pass; the old UI still renders (no regressions). |
-| **5. Mission control** | `agents.py` v2, `phase_bar`, `swarm_canvas`, `worker_pool`, `profile_card`, `input_request`, `activity`, `sources_panel`, `run_summary`, `run_detail.py` v2; delete the old components. | A live `run-sample` viewed through `serve` shows the pulsing active node, hand-off labels, the worker pool filling, the profile card and thoughts updating. The clarifier inline card works (use the `priya` sample with countries removed). Mobile timeline works. |
-| **6. Results + extras** | Results components, `calendar.py` + endpoint, print CSS, ETA. | All tabs render for 2 different finished runs; the .ics imports into Google Calendar (human check); Print preview shows only the results. |
-| **7. Replay** | `services/replay.py`, replay mode in `run_detail`, Replay buttons in history and summary. | `?replay=1&speed=20` replays a full run in under 1 minute and ends with the results; tests pass. |
-| **8. Polish + QA** | Visual QA (§10) at desktop and mobile, light and dark; empty, error and failed states; reduced motion; keyboard submit; copy pass (short, plain, no jargon in the UI). | Screenshots reviewed; `test` is all green; human checklist in `human-plan.md` §5 passes. |
-| **9. Docs** | Update `README.md` (new UI, voice, replay, E2B runner), `docs/architecture.md` (UI layer + event enrichment), `STATUS.md` (new state, test count), and add UI screenshots to `docs/screenshots/`. | Docs match the app. |
+| Display | `text-[44px] leading-[52px] font-semibold tracking-[-0.02em]` (mobile: `text-[32px] leading-[40px]`) | home headline only |
+| H1 | `text-[28px] leading-9 font-semibold tracking-[-0.01em]` | page titles |
+| H2 | `text-xl leading-7 font-semibold` | section titles |
+| H3 | `text-base leading-6 font-semibold` | card titles |
+| Body | `text-sm leading-[22px]` | default |
+| Small | `text-xs leading-[18px] text-muted` | captions, labels |
+| Overline | `text-[11px] leading-4 font-semibold uppercase tracking-[0.08em] text-muted` | section eyebrows, KPI labels |
+| Mono | `font-mono text-xs tabular-nums` | ids, timers, counts |
+
+Numbers everywhere use `tabular-nums`.
+
+### 6.3 Spacing and layout rules
+- 4-px base. Allowed gaps: 4, 8, 12, 16, 24, 32, 48, 64.
+- Page vertical rhythm: sections are separated by `gap-8` (32px). Inside a card, use `p-5` (20px) for panels, `p-6` (24px) for content cards.
+- **Container:** `mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-8` with `data-testid="container"`. The header and every page section use `<Container>`. This alone fixes the header/content misalignment.
+- **Equal-height rows:** any row of panels is `grid grid-cols-N gap-6` with a fixed `h-[XXXpx]` on the row, and each panel `h-full min-h-0 flex flex-col` with an internal `ScrollArea` (`flex-1 min-h-0`). Give rows `data-row="<name>"` for the tests.
+- Breakpoints: `sm 640`, `md 768`, `lg 1024`, `xl 1280`.
+
+### 6.4 Component rules
+- Card/Panel: `bg-surface border border-line rounded-[var(--radius-card)] shadow-card`.
+- Buttons: shadcn `Button`. Primary uses accent; secondary is `variant="outline"`; tertiary is `variant="ghost"`. Height `h-9` (36px), large `h-10`.
+- Status is always **dot or icon plus text** (`StatusPill`), never color alone.
+- Text that can be long always uses `truncate` (one line) or `line-clamp-2`, with the full text in `title=` or a Tooltip. **Never `overflow-hidden` on a text container without truncate or line-clamp.**
+- Icons: lucide, `size-4` (16px) inline, `size-[18px]` in tiles; stroke width 1.75.
+
+### 6.5 Motion
+- Durations: 150ms (hover), 200ms (enter), 1.6s (pulse loop). Easing `cubic-bezier(.2,.8,.2,1)`.
+- `@keyframes ss-pulse` (box-shadow ring 0 → 6px accent at 15% opacity), `@keyframes ss-dash` (stroke-dashoffset 20 → 0).
+- `@media (prefers-reduced-motion: reduce)`: disable both keyframes and the edge particles.
+
+### 6.6 Logo mark (`LogoMark.tsx` + `public/favicon.svg`)
+A 20×20 SVG of three circles: (6,13) r=3, (14,13) r=3, (10,6) r=3, filled `currentColor` (accent), plus two 1px lines connecting the bottom circles to the top one at 40% opacity. Wordmark "ScholarSwarm" in `text-[15px] font-semibold tracking-[-0.01em]` next to it, with an 8px gap.
 
 ---
 
-## 12. Definition of done
+## 7. App shell
 
-- [ ] A student can start a search with **only** a resume, **only** typed text, **only** speech, or any mix, without opening any form.
-- [ ] Mission control makes it obvious which agent is working, what it's doing, what it handed to whom, and that verifiers run in parallel.
-- [ ] Every fallback, retry and supervisor decision is visible on the canvas and in Activity.
-- [ ] Results show verified sources with quotes, a requirement checklist, deadlines with .ics, the SOP and gaps/what-if.
-- [ ] Replay of a finished run works at 20×.
-- [ ] Light and dark themes, desktop and mobile layouts look clean and consistent (screenshots in `docs/screenshots/`).
-- [ ] All tests pass in E2B; nothing was executed on the local machine except `e2b_run.py`.
-- [ ] No secrets in git (`git grep -n "e2b_\|sk-\|tvly-" -- . ':!*.example'` returns nothing).
+### 7.1 `Header.tsx`
+- `<header class="sticky top-0 z-40 h-14 border-b border-line bg-surface/80 backdrop-blur">` containing `<Container class="h-full flex items-center justify-between">`.
+- Left: `LogoMark` + wordmark (link to `/`).
+- Right: nav links "New search" (`/`) and "History" (`/runs`) as ghost buttons `h-8 px-3 text-sm text-muted hover:text-ink`. The active route gets `text-ink bg-subtle`. Then a theme toggle (ghost icon button, Sun/Moon icon, cycling light → dark → system, with the tooltip showing the current mode).
+
+### 7.2 `AppShell.tsx`
+`min-h-dvh bg-canvas text-ink font-sans`, then `<Header/>`, then `<main class="py-8 sm:py-10">{outlet}</main>`. No footer.
+
+### 7.3 Theme (`lib/theme.ts`)
+Store `ss-theme` (`light|dark|system`) in localStorage, wrapped in try/catch. Apply the `.dark` class on `<html>` before React renders (a tiny inline script in `index.html`) to avoid a flash.
+
+---
+
+## 8. Data layer
+
+### 8.1 Types
+`npm run gen:api` = `openapi-typescript http://localhost:8000/openapi.json -o src/api/schema.d.ts`, run in E2B with uvicorn up. `types.ts` exports: `Event, EventType, FinalReport, TopMatch, Opportunity, Requirement, Source, Gap, StudentProfile, RunSummary, RunDetail, MetaResponse, SampleInfo, ChaosPoint`.
+
+### 8.2 `api/client.ts`
+Functions: `getMeta()`, `listRuns()`, `getRun(id)`, `getEventsJson(id)`, `createRun(form: CreateRunInput)` (builds `FormData` exactly like the API's form fields in `api/runs.py`, with lists as comma-joined strings and `test_scores_json`/`chaos_json` as JSON strings), `resumeRun(id, answers)`, `getGraph(id)`, `whatIf(id, overrides)`, and URL helpers `eventsUrl(id, after)`, `reportUrl(id)`, `sopUrl(id)`, `icsUrl(id)`. Throw `ApiError(status, message)` with the FastAPI `detail` text.
+
+### 8.3 `api/queries.ts`
+`useMeta()` (staleTime 60s), `useRuns()`, `useRun(id)` (refetch when the stream reports finished), `useGraph(id, version)` (query key includes `graphVersion` so it refetches on `graph_update`), `useCreateRun()`, `useResumeRun()`, `useWhatIf()`.
+
+### 8.4 `state/runReducer.ts` — port of `backend/app/ui/live_state.py`
+- Before writing it, **read `backend/app/ui/live_state.py` fully** and port every field and every event branch **1:1**: agent_status, thoughts, workers (and their transitions), handoffs, active_edges, phase/phase_done, verifier counters, candidates, interrupt, live_view_url, graph_version, stats, profile_snapshot, student_name, finished/failed, tick.
+- Shape: `type RunState = {...}`; `function reduceEvent(state: RunState, event: Event): RunState`. Pure and immutable (spread copies).
+- Add `traversedEdges: string[]` (edge ids `"src->dst"` that have ever carried a hand-off) for the done-edge style.
+- Port **every test case** from `backend/tests/test_live_state.py` into `runReducer.test.ts` (same inputs, same expected outputs).
+- `initialRunState(runId)`.
+
+### 8.5 `state/useRunStream.ts`
+- Takes `runId`. Opens `new EventSource(eventsUrl(runId, lastId))`. On each message, parse the JSON `Event` and dispatch `reduceEvent` with `useReducer`. Buffer events and flush at most every 100ms with `requestAnimationFrame` batching so the UI doesn't re-render 50 times a second.
+- On `error`: close, wait `min(1000 * 2^attempt, 10000)` ms, reopen with `after=lastId`. Stop after `run_finished`/`run_failed`.
+- Returns `{ state, connected }`. Every 3 s, `state.tick++` through a dispatch of the synthetic `{type: "tick"}` action, so time-based UI (labels fading, ETA) moves even without events.
+
+### 8.6 `state/useReplay.ts`
+- `replayDelays(timestamps: string[], speed: number, capMs = 1500): number[]` (pure, tested; the same algorithm as the deleted Python `replay_delays`: `min((t[i]-t[i-1]) / speed, cap)`, first delay 0).
+- The hook loads `getEventsJson(id)`, then schedules dispatches with `setTimeout` chains and exposes `{state, speed, setSpeed, restart, done}`.
+
+### 8.7 `lib/coverage.ts`
+Port `COUNTRIES`, `COVERAGE` and `coverage(text)` from `backend/app/services/intake.py` exactly (same regexes with the `i` flag; keep the same hint keys `degree, grades, goal, countries, budget, tests, projects`). Port the coverage test cases from `test_intake.py` into `coverage.test.ts`, then delete them from Python.
+
+### 8.8 `lib/speech.ts` — `useSpeechRecognition({lang})`
+- `supported = 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window`.
+- `continuous = true`, `interimResults = true`. Returns `{supported, listening, interim, start(), stop(), error}` plus an `onFinal(text)` callback option.
+- Error mapping: `not-allowed` → "Microphone permission denied", `no-speech` → "Didn't catch that — try again", others → "Voice input stopped".
+- Only one instance listens at a time: a module-level `activeStop` function stops the previous one.
+
+---
+
+## 9. Routes
+
+| Path | Page |
+|---|---|
+| `/` | HomePage |
+| `/runs` | HistoryPage |
+| `/runs/:id` | RunPage (live or finished) |
+| `/runs/:id?replay=1&speed=20` | RunPage in replay mode |
+| `*` | NotFoundPage |
+
+---
+
+## 10. Pages (wireframes are binding)
+
+### 10.1 HomePage (`/`)
+Everything is **centered on one vertical axis**. Column width `max-w-[720px] mx-auto`, except HowItWorks, which is `max-w-[880px]`.
+
+```
+┌ Header (Container 1280) ───────────────────────────────────────────────┐
+│ ◦◦◦ ScholarSwarm                                  New search  History ◐ │
+└────────────────────────────────────────────────────────────────────────┘
+                     ( ● 11 AI agents · official sources only )      ← pill, mx-auto
+                    Find funding you actually qualify for.           ← Display, text-center
+        Upload a resume, type, or just talk. Agents research, verify  ← Body 16px muted,
+        every requirement and draft your application.                    text-center max-w-[560px]
+   ┌────────────────────────── Composer (720) ───────────────────────────┐
+   │ [resume.pdf · Resume ▾ ✕] [marks.pdf · Transcript ▾ ✕]  (if files)  │
+   │ Tell us about yourself — degree, grades, projects, and what…       │
+   │                                                                     │
+   │ listening… "i want a funded masters in"        (interim, if voice)  │
+   ├─────────────────────────────────────────────────────────────────────┤
+   │ (📎) (🎤) EN-IN ▾                         42 words  [Find scholarships →] │
+   └─────────────────────────────────────────────────────────────────────┘
+          ✓Degree  ✓Grades  ·Goal  ·Countries  ·Budget  ·Tests  ·Projects   ← centered
+          Try a sample:  Rahul · Priya · Arjun · Meera      |   ⚙ Advanced  ← centered
+   ─────────────────────────── How it works (880) ───────────────────────────
+     (1)────────(2)────────(3)────────(4)────────(5)────────(6)
+   Understand    Plan     Research    Verify     Decide     Write
+   reads you   picks      searches    checks     ranks     drafts
+               queries    the web     official   matches   your SOP
+                                      pages
+          ✓ Official sources only   ❝ Every fact cited   🔒 Files stay in this session
+```
+
+Spacing top to bottom: pill → 16 → Display → 12 → sub → 32 → Composer → 12 → hints → 16 → sample row → 64 → HowItWorks → 48 → trust row.
+
+**Composer (`Composer.tsx`)**
+- Card (`rounded-[16px] border border-line bg-surface shadow-card`). `focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/10`.
+- Attachment row (`px-4 pt-4 flex flex-wrap gap-2`) is shown only with files. `AttachmentChip` is `h-8 rounded-full border border-line bg-subtle pl-2 pr-1 text-xs`, with a FileText icon, a truncated name (`max-w-[180px]`), a role dropdown (Resume/Transcript), and an ✕ ghost icon button.
+- Textarea: shadcn `Textarea` restyled `border-0 shadow-none focus-visible:ring-0 resize-none px-4 pt-4 pb-2 text-[15px] leading-6 min-h-[132px] max-h-[320px]`, auto-growing (set height to `scrollHeight` on input). Placeholder: "Tell us about yourself — your degree, grades, projects, and what you want to study and where. Or drop your resume here."
+- Interim line (only while listening): `px-4 pb-2 text-sm italic text-muted` with a red 6px pulsing dot and "Listening…" plus the interim text.
+- Toolbar: `flex items-center justify-between border-t border-line px-3 py-2`.
+  - **Left group** (`flex items-center gap-1`): Attach (ghost icon button, Paperclip, tooltip "Attach PDF (resume or transcript)"), `VoiceButton` (ghost icon button, Mic; while listening it's a filled accent circle with MicOff and a pulse ring; tooltip "Speak"), then a language `Select` styled `h-8 w-[92px] border-0 bg-transparent text-xs text-muted` with options `EN-IN` (English India, default), `EN-US`, `HI-IN`. Hide the voice button and language select when speech isn't supported, and show a tooltip on a disabled mic: "Voice works in Chrome or Edge".
+  - **Right group** (`flex items-center gap-3`): word count (`text-xs text-muted tabular-nums`, e.g. "42 words"), then the primary Button `h-9 px-4` "Find scholarships" with ArrowRight. Disabled until valid. The disabled tooltip says "Add a resume or at least 20 words about you".
+- Drag & drop: the whole card is the drop target. On dragover, show an absolute overlay `inset-0 rounded-[16px] border-2 border-dashed border-accent bg-accent-soft/80 flex items-center justify-center text-sm font-medium text-accent` "Drop PDF to attach". Accept `.pdf`, max 2 files, 10 MB each; otherwise show a toast error.
+- Role auto-detection: use the filename heuristic (`/transcript|marksheet|grade|semester/i` → Transcript, otherwise Resume; with two files and both "Resume", the second becomes Transcript). The backend `classify_document` still re-checks the content.
+- Valid when: files ≥ 1, or words ≥ 20, or a sample is selected.
+- `Ctrl/Cmd+Enter` submits.
+- Voice: final text is appended to the textarea (one space separator), and the interim text is shown in the interim line.
+- Submit: `createRun({description, files, input_modes, sample, ...advancedValues, chaos})` → on success `navigate('/runs/' + run_id)`. On error, a toast with the API detail. The button shows a spinner and "Starting…" while pending.
+
+**CoverageHints**: `flex flex-wrap justify-center gap-2`. Each chip is `h-7 rounded-full px-3 text-xs border`. Covered: `border-ok/30 bg-ok-soft text-ok` with a Check icon. Not covered: `border-line text-muted` with a 6px dot. Debounce 250ms. When files are attached, chips not covered by text show the label "in resume?" in muted italic (the resume probably covers them).
+
+**SampleRow**: `flex items-center justify-center gap-3 text-sm`. "Try a sample:" is muted, then one ghost link button per `meta.samples` (label). Clicking one fills the textarea with `sample.description`, sets the sample, shows a toast "Loaded sample: Rahul". Then a vertical `Separator` (h-4), then the "Advanced" ghost button (SlidersHorizontal icon) that opens `AdvancedSheet`.
+
+**AdvancedSheet** (shadcn `Sheet`, side right, width `w-[440px]`): title "Advanced options", Tabs "Details | Demo".
+- Details: a 2-column grid (`grid grid-cols-2 gap-4`): GitHub URL (col-span-2), LinkedIn/portfolio (col-span-2), Target countries (multi chips input, col-span-2), Degree (Select: MS, MEng, MBA, PhD, MA, Other), Budget INR/yr (number), IELTS, TOEFL, GRE (numbers; the third goes col-span-2 or use a 3-col subgrid), Notes (textarea, col-span-2).
+- Demo: "Chaos Mode" with each `meta.chaos_points` item as a row (`flex justify-between items-start gap-4 py-3 border-b border-line`): label (`text-sm font-medium`) and caption (Small) on the left, Switch on the right. Then a "Providers" list: a 2-column grid of `StatusPill` (ready/not set).
+- Footer: "Done" button. The values live in the HomePage state.
+
+**HowItWorks**: `grid grid-cols-6` (mobile: `grid-cols-3 gap-y-8`). Each column is centered: a 40px circle `bg-surface border border-line` with the phase icon (accent), then the label (`text-sm font-medium mt-3`), then a 2-line caption (Small). A 1px `bg-line` line runs behind the circles at the circle center (absolutely positioned, from the first circle center to the last). Phase icons: Understand `UserSearch`, Plan `Map`, Research `Search`, Verify `ShieldCheck`, Decide `Scale`, Write `PenLine`.
+
+### 10.2 RunPage (`/runs/:id`) — live state (desktop ≥ 1280)
+
+```
+Container
+┌ RunHeader ───────────────────────────────────────────────────────────────┐
+│ (RS) Rahul Sharma   ● Running   run 4b80b7d7                01:37 · ~8 min left  [Replay][⋯] │
+└──────────────────────────────────────────────────────────────────────────┘
+┌ PhaseStepper: 6 equal segments ─────────────────────────────────────────┐
+│ ▬▬▬▬▬▬ ▬▬▬▬▬▬ ▬▬▬▬▬▬ ▬▬▬░░░ ░░░░░░ ░░░░░░                               │
+│ ✓Understand ✓Plan ✓Research ●Verify ○Decide ○Write                       │
+└──────────────────────────────────────────────────────────────────────────┘
+[ InputRequestCard — full width, only while waiting ]
+┌ KPI strip: grid-cols-6 equal ────────────────────────────────────────────┐
+│ LLM CALLS 13 │ PAGES READ 10 │ CANDIDATES 15 │ VERIFIED 2 │ RECOVERIES 0 │ COST $0.04 │
+└──────────────────────────────────────────────────────────────────────────┘
+┌ SwarmSection card (full width, canvas height 460) ───────────────────────┐
+│  UNDERSTAND   PLAN & RESEARCH   VERIFY      DECIDE        WRITE          │
+│  [Profile]    [Scout]         ┌Verifiers┐  [Matcher]     [Report]        │
+│  [Clarifier]  [Planner]       │ chips…  │  [Supervisor]  [Critic]        │
+│  [GitHub]                     └─────────┘  [Ranker]      [SOP]           │
+│                                         (fit view, dotted background)    │
+└──────────────────────────────────────────────────────────────────────────┘
+┌ data-row="panels" h-[440px] grid-cols-3 gap-6 ───────────────────────────┐
+│ [ProfilePanel]         │ [ActivityPanel]        │ [SourcesPanel]          │
+└──────────────────────────────────────────────────────────────────────────┘
+┌ data-row="insight" h-[400px] grid-cols-2 gap-6 ──────────────────────────┐
+│ [GraphPanel]                      │ [BrowserPanel]                        │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+Vertical gaps between all blocks: `gap-6` (24px).
+
+**Responsive:**
+- `lg` (1024–1279): same order. The canvas is still shown (fitView scales it). The `panels` row becomes a single `Panel` with Tabs (Profile | Activity | Sources) at `h-[480px]`. The `insight` row stays 2 columns at `h-[360px]`.
+- `< lg` (mobile/tablet): RunHeader stacks (name row, then meta row). PhaseStepper is compact (only "Step 4 of 6 · Verify" plus a thin progress bar). KPI strip is `grid-cols-2` (3 rows). Instead of the canvas, show `MobileTimeline` inside the SwarmSection card. Then one Tabs panel (Profile | Activity | Sources | Graph | Browser) at `h-[520px]`.
+
+**Components**
+- **RunHeader**: `flex items-center justify-between`.
+  - Left: avatar (`size-9 rounded-full bg-accent-soft text-accent text-sm font-semibold`, initials), name (H2), `StatusPill`, and the run id (Mono, muted, first 8 chars, copy-on-click with a toast).
+  - Right: timer (Mono `text-sm`, "01:37") · ETA (Small, "~8 min left", or "almost done" when below 30s, from `meta.median_duration_sec`). Then a "Replay" outline button (only when finished or failed), then a `DropdownMenu` (⋯) with "Download report (.md)", "Download SOP (.md)", "Add deadlines to calendar (.ics)" and "Print results" (only when finished), plus "Copy run link".
+- **PhaseStepper**: `grid grid-cols-6 gap-2`. Each cell has a bar `h-1.5 rounded-full` (done `bg-ok`, active `bg-accent` with an animated shimmer gradient, pending `bg-line`), then below it (mt-2) `flex items-center gap-1.5 text-xs font-medium`: an icon (done CheckCircle2 in ok, active a 6px accent pulsing dot, pending a Circle in muted) and the phase label. The active label uses `text-ink`, done `text-ink`, pending `text-muted`.
+- **KpiStrip**: `grid grid-cols-6 gap-4` of `KpiTile` (`Panel p-4`): Overline label, value `text-2xl font-semibold tabular-nums mt-1`. Values come from the reducer `stats`: LLM calls, pages read, candidates (`candidates.length`), verified, recoveries (retries + fallbacks), and cost (`$0.00` format). When recoveries > 0, the value is `text-warn`.
+- **InputRequestCard**: `Panel border-warn/40 bg-warn-soft/40 p-5`. Header row: an amber icon tile (Hand icon), the H3 "The swarm needs one detail", and Small "Answer or skip — agents continue either way". The questions grid is `grid grid-cols-2 gap-4 mt-4` (one question → col-span-2). Field types: `multi` → chips input with suggestions from `COUNTRIES` when the field is target_countries; `text` → Input plus a VoiceButton inside the input's right side; `number` → Input type number. Actions are right-aligned: "Skip" (ghost) and "Continue" (primary). Submitting calls `resumeRun` with a pending spinner, and the card hides when the `resumed` event arrives. The canvas Clarifier node shows the "waiting" state at the same time.
+- **SwarmSection**: a Panel with a header row (`flex items-center justify-between px-5 pt-4`): H3 "Agent swarm" and Small "{n} agents · {k} working now", plus on the right a legend of 4 small StatusPills (Working, Done, Waiting, Failed). Body: `SwarmCanvas` (§11) at `h-[460px]` on lg+, `MobileTimeline` below lg.
+- **ProfilePanel**: Panel. Header "What the agents understood" (H3) and, on the right, Small "from resume + description". Body (ScrollArea): a definition grid `grid grid-cols-[96px_1fr] gap-x-4 gap-y-2 text-sm` with rows Degree, University, CGPA, Target, Countries, Tests, Budget (labels Small muted; empty values become "—"). Then a "Skills" Overline plus a wrap of `Badge variant="secondary"` (max 10, then "+N"). Then "Projects" Overline with two subsections: "From resume" (FileText icon rows) and "Found on GitHub" (Github icon rows, each with a small "new" ok badge). Then "Not provided" Overline with a muted list. Skeleton loading state (5 rows) until `profile_snapshot` exists.
+- **ActivityPanel**: Panel. Header: H3 "Activity" (the **only** title; the Tabs version omits it) and on the right a `ToggleGroup` (Important | All) plus an agent `Select` (`w-[140px] h-8`). Body: ScrollArea with rows `grid grid-cols-[44px_20px_1fr] gap-2 py-2 border-b border-line/60`:
+  - col 1: Mono `text-[11px] text-muted` mm:ss
+  - col 2: a 20px round icon tile in the event's tone color
+  - col 3: `text-xs font-semibold` agent name plus `text-[11px] text-muted uppercase` type on one line, then the message `text-[13px] leading-5 line-clamp-2` (click toggles clamp), then the optional URL as `text-xs text-accent truncate block` link.
+  Tone left border: fallback/retry/chaos → `border-l-2 border-warn pl-2`; errors → `border-err`; decision → `border-accent`. Auto-scroll to the bottom unless the user scrolled up more than 48px; then show a floating "Jump to latest" small pill at the bottom center.
+- **SourcesPanel**: Panel. Header "Sources" plus Small "{verified} verified · {rejected} rejected · {total} found". Rows `flex items-center gap-3 py-2 border-b border-line/60`: `Favicon` (16px img from `https://www.google.com/s2/favicons?domain=<domain>&sz=32`, falling back to a Globe icon on error), then a `min-w-0 flex-1` block with the title (`text-[13px] truncate`) and the domain (Small truncate), then a `StatusPill` of the worker state, then ShieldCheck (ok) if official.
+- **GraphPanel**: Panel. Header "Knowledge graph" plus a legend (dots: Student, Skill, Project, Opportunity, Requirement, Organization, Country). Body: `react-force-graph-2d` sized to the panel body via `ResizeObserver`. Node color by type using these exact hex values in a TS constant (the one allowed place besides tokens, since canvas drawing can't use CSS vars): Student `#4F46E5`, Skill `#0EA5E9`, Project `#8B5CF6`, Opportunity `#059669`, Requirement `#D97706`, Organization `#64748B`, Country `#A1A1AA`. Draw labels only for Student and Opportunity nodes. MEETS links in ok green, MISSES in err red, others `#D4D4D8`. `cooldownTicks=80`, then `zoomToFit(400, 24)`. Empty state: "The graph fills in once the Matcher runs."
+- **BrowserPanel**: Panel. Header "Live browser" plus a red "LIVE" pill while a URL exists. Body: an `iframe` filling the body (`w-full h-full rounded-b-[12px] border-0`). Empty states: before any URL, "An agent's browser appears here when it opens a website"; after finishing, "Browser session closed".
+- **ReplayBar** (replay mode only): a sticky bar under the header `h-12 bg-accent-soft border-b border-accent/20`, with a Container row: a "Replay" pill, a speed ToggleGroup (1× 5× 20×), "Restart", and "Exit replay" (navigates to the same URL without the query).
+
+### 10.3 RunPage — finished state
+When `status` is finished and the report is loaded, the order becomes:
+```
+RunHeader (● Finished · 10m 12s · actions)
+ResultSummary
+Tabs: Matches | All opportunities | Unlock more | Deadlines | SOP
+Accordion (collapsed by default): "How the swarm worked" → PhaseStepper + KpiStrip + SwarmSection + panels rows (final state)
+```
+- **ResultSummary**: Panel `p-6`. The H2 sentence is built deterministically: "We verified **{n} opportunities** from official sources — **{e} are strong matches** for you." Second line (Body muted): "Nearest deadline: **{date}** ({name})" or "Most deadlines are rolling — check each official page." Below, `grid grid-cols-3 gap-4 mt-5` of KpiTiles: Verified · Eligible now · Unlockable with one step (`gaps[0].unlocks.length`, or 0).
+- **Tabs** (shadcn, `TabsList` full width `grid grid-cols-5`). Content area `mt-6`.
+- **Matches** → `flex flex-col gap-4` of `MatchCard`:
+  ```
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │ 01   DAAD EPOS Scholarship                                  ( 87% )      │
+  │      DAAD · Germany                                          match       │
+  │ ┌ Funding ─────┬ Deadline ──────┬ Eligibility ──┬ Source ──────────┐      │
+  │ │ Full + stipend│ 15 Nov · 20 d │ ● Eligible     │ ✓ Official page  │      │
+  │ └───────────────┴───────────────┴───────────────┴──────────────────┘      │
+  │ Why you — 3 lines of markdown, "Show more"                               │
+  │ ▸ Requirements (6)   ▸ How to apply   ▸ Sources (3)          [Apply ↗]   │
+  └──────────────────────────────────────────────────────────────────────────┘
+  ```
+  - Grid: `grid grid-cols-[56px_1fr_120px] gap-x-4 p-6`. Col 1: rank `text-2xl font-semibold text-muted tabular-nums` ("01"). Col 2: name (H3, `text-lg`) and org · country (Small). Col 3: `ScoreRing` (56px SVG ring, stroke 5, accent, center text `text-sm font-semibold`, "match" Small under it), right-aligned.
+  - Facts row: `col-span-3 mt-4 grid grid-cols-4 divide-x divide-line rounded-[10px] border border-line bg-subtle/50`. Each cell `px-4 py-3` has an Overline label, then a value `text-sm font-medium truncate` with a title tooltip. Deadline value: date plus a days-left badge (red < 14, amber < 45, ok otherwise; "rolling" muted when there's no date).
+  - Why you: `col-span-3 mt-4`, markdown `text-sm leading-6 line-clamp-3`, with a "Show more"/"Show less" ghost xs toggle.
+  - Footer: `col-span-3 mt-4 flex items-center justify-between`. Left: an `Accordion type="multiple"` whose triggers are rendered as ghost xs buttons in a row (Requirements (n), How to apply, Sources (n)); their content opens **below the footer** at full width. Right: the primary Button "Apply" with ExternalLink (`application_url || official_url`, new tab).
+  - **RequirementList**: rows `grid grid-cols-[20px_1fr_auto] gap-3 py-2 border-b border-line/60`: an icon (met yes → CheckCircle2 ok, no → XCircle err, unknown → HelpCircle muted), then the description (`text-sm`) with the evidence (Small) below, then an Info icon button with a Tooltip containing `“quote”` (italic, max-w-[320px]) and the domain.
+  - How to apply: an ordered list `list-decimal pl-5 text-sm space-y-1`, then "Documents" Overline with check-square rows.
+  - Sources: `SourceChip` list (favicon + domain + verification icon; Tooltip with the quote).
+- **All opportunities** → a toolbar (`flex items-center justify-between mb-4`): left, a filter ToggleGroup (All | Eligible | Partial | Not eligible); right, a country `Select` and a search `Input` (`w-[220px]`). Then a shadcn `Table` inside a Panel: columns Opportunity (name `font-medium` + org Small, `min-w-[260px]`), Country, Funding, Deadline, Eligibility (StatusPill), Score (`tabular-nums` + a thin 48px bar), Verification (icon + text), and a link (ExternalLink icon button). Sortable by Score (default desc) and Deadline via clickable headers with an arrow icon. Below it, an `Accordion` "Rejected ({n})" with a simple 2-column table (URL domain, reason).
+- **Unlock more** → `grid grid-cols-2 gap-6` (mobile 1 column):
+  - Left: H3 "One step away", then a list of gap cards (Panel `p-4`): the title `text-sm font-semibold` (e.g. "IELTS ≥ 6.5"), a Badge "unlocks {k}", the suggestion (Small), and the unlocked names as small chips.
+  - Right: `WhatIfForm` Panel `p-5 sticky top-20`: H3 "What if…", then rows with Label + Slider + value (Mono) for CGPA (0–10, 0.1), IELTS (0–9, 0.5), TOEFL (0–120, 1), GRE (260–340, 1) and Work experience (0–10, 0.5), each prefilled from the profile (default slider position at the student's value or the minimum). A "Recalculate" primary button calls `whatIf`. The result is a list "Newly eligible" (ok) and "Still blocked" (muted) compared with the original report.
+- **Deadlines** → a header row with H3 "Deadlines", a "Show expired" Switch on the right, and the "Add all to calendar" outline button (`icsUrl`, CalendarPlus icon). The list is grouped by month (Overline "NOVEMBER 2026"). Rows `grid grid-cols-[56px_1fr_auto] gap-4 items-center py-3 border-b`: a date block (day `text-xl font-semibold tabular-nums` over a month Small, centered, in a `bg-subtle rounded-[10px] h-14 w-14` box), name and org, then a days-left badge. Opportunities without a date go under a "Rolling / check official page" group at the end.
+- **SOP** → `grid grid-cols-[1fr_300px] gap-6` (mobile 1 column):
+  - Left: `SopDocument` Panel `p-8 sm:p-10` with a header row (Small "Statement of purpose for" plus H3 program name; right side: "{words} words · {revisions} revisions", Copy and Download icon buttons). The body is markdown with `prose`-like styles defined in globals.css (`.sop h2 {…} .sop p {margin: 0 0 1em; line-height: 1.75; font-size: 15px}`), max line length `max-w-[68ch]`. Highlight `[ADD: …]` placeholders by splitting text nodes with `/\[ADD:[^\]]+\]/g` and wrapping matches in `<mark class="rounded px-1 bg-warn-soft text-warn">`.
+  - Right: a "Critic notes" Panel `p-5` with a numbered list of `critic_notes` (Small), or "No open issues" (ok).
+- Print (`window.print()`): `@media print` hides the header, accordion, buttons and tabs list, shows all tab contents stacked (render all tab contents with `forceMount` and CSS show/hide), white background.
+
+### 10.4 RunPage — failed state
+RunHeader with a ● Failed pill, then an error Panel (`border-err/40 bg-err-soft/40`) with the H3 "This run stopped", the error text (Mono xs, wrapped), and buttons "Replay what happened" and "Start a new search". Below it, the "How the swarm worked" accordion (expanded).
+
+### 10.5 HistoryPage (`/runs`)
+`PageHeader`: H1 "History" plus Small "Every search you ran, with a replay." Right side: the primary Button "New search".
+A Panel with a shadcn Table: Student (avatar initials + name), Started (relative, with the absolute date in a tooltip), Duration (Mono), Verified (tabular), Status (StatusPill), and right-aligned actions (`Open` ghost and `Replay` ghost, Play icon, only for finished/failed). The whole row is clickable to Open. Empty state (`EmptyState`): LogoMark at 40px, H3 "No searches yet", Small text, and the primary "Start a search" button, centered with `py-16`.
+
+### 10.6 NotFoundPage
+A centered EmptyState with "Page not found" and a "Go home" button.
+
+---
+
+## 11. Swarm canvas (React Flow) — exact spec
+
+### 11.1 Settings
+`<ReactFlow nodes edges nodeTypes edgeTypes fitView fitViewOptions={{padding: containerWidth >= 1200 ? 0.08 : 0.02}} minZoom={0.4} maxZoom={1.2} nodesDraggable={false} nodesConnectable={false} elementsSelectable={false} panOnDrag={true} zoomOnScroll={false} zoomOnPinch={true} preventScrolling={false} proOptions={{hideAttribution: true}}>` plus `<Background variant="dots" gap={20} size={1} />` (dot color = `--color-line`) and `<Controls showInteractive={false} position="bottom-right" />`. Call `fitView()` again on container resize (ResizeObserver, debounced 150ms). Import `@xyflow/react/dist/style.css`, then override React Flow's CSS variables for the theme in globals.css.
+
+### 11.2 Node sizes
+- `AgentNode`: **210 × 76** px.
+- `VerifierPoolNode`: **230 × 300** px.
+- `LaneLabelNode`: 210 × 20 (230 for the verify lane), text only.
+
+### 11.3 Coordinates (top-left `position`, in flow units) — binding
+| Node id | type | x | y |
+|---|---|---|---|
+| `lane-understand` "UNDERSTAND" | lane | 0 | -36 |
+| `lane-plan` "PLAN & RESEARCH" | lane | 250 | -36 |
+| `lane-verify` "VERIFY" | lane | 500 | -36 |
+| `lane-decide` "DECIDE" | lane | 770 | -36 |
+| `lane-write` "WRITE" | lane | 1020 | -36 |
+| `profile_analyst` | agent | 0 | 0 |
+| `clarifier` | agent | 0 | 112 |
+| `github_enricher` | agent | 0 | 224 |
+| `scout` | agent | 250 | 0 |
+| `planner` | agent | 250 | 112 |
+| `verifier` | verifierPool | 500 | 0 |
+| `matcher` | agent | 770 | 0 |
+| `supervisor` | agent | 770 | 112 |
+| `ranker` | agent | 770 | 224 |
+| `finalizer` | agent | 1020 | 0 |
+| `critic` | agent | 1020 | 112 |
+| `sop_writer` | agent | 1020 | 224 |
+
+Total extent: x 0–1230, y −36–300 (+ a loop lane at y=330). Nothing overlaps by construction. Keep these in `swarm/agents.ts` as `LAYOUT`.
+
+### 11.4 Handles
+Every AgentNode renders 8 invisible handles (`opacity-0`, size 1): ids `t-s, b-s, l-s, r-s` (type source) and `t-t, b-t, l-t, r-t` (type target) at top/bottom/left/right center. VerifierPoolNode renders `l-t` at y=38 (the left side at the same height as the scout center) and `r-s` at y=38 (lined up with the matcher center).
+
+### 11.5 Edges — binding (sourceHandle → targetHandle, type)
+| Edge | source → target | handles | type | notes |
+|---|---|---|---|---|
+| e1 | profile_analyst → clarifier | b-s → t-t | flow | vertical |
+| e2 | clarifier → github_enricher | b-s → t-t | flow | vertical |
+| e3 | profile_analyst → github_enricher | l-s → l-t | loop | waypoints (§11.6) bulging left: x −24 |
+| e4 | github_enricher → planner | r-s → l-t | flow | bezier, goes up one row |
+| e5 | planner → scout | t-s → b-t | flow | vertical, upward |
+| e6 | scout → verifier | r-s → l-t | flow | straight |
+| e7 | verifier → matcher | r-s → l-t | flow | straight |
+| e8 | matcher → supervisor | b-s → t-t | flow | vertical |
+| e9 | supervisor → planner | l-s → r-t | loop | waypoints: (750,150) → (750,330) → (480,330) → (480,150) → planner r-t (460,150); label "re-plan" |
+| e10 | supervisor → ranker | b-s → t-t | flow | vertical |
+| e11 | ranker → sop_writer | r-s → l-t | flow | straight (same row) |
+| e12 | sop_writer → critic | t-s → b-t | flow | vertical, upward |
+| e13 | critic → sop_writer | r-s → r-t | loop | waypoints bulging right: x 1254; label "revise" |
+| e14 | critic → finalizer | t-s → b-t | flow | vertical, upward |
+
+Edge ids are `"<src>-><dst>"`, matching the reducer's `activeEdges`/`traversedEdges` keys.
+
+### 11.6 `LoopEdge.tsx`
+Builds an orthogonal path through `data.waypoints` with 8px rounded corners (use quadratic curves at each corner). Stroke `--color-line-strong`, width 1.5, `strokeDasharray="4 4"`. Active: accent stroke, width 2, the dash animation, and the label pill at the middle waypoint. For e3 and e13, compute waypoints from the handle positions passed in props (`sourceX/Y`, `targetX/Y`) plus the fixed bulge x.
+
+### 11.7 `FlowEdge.tsx`
+- `getBezierPath` (or `getStraightPath` when `sourceY === targetY` or `sourceX === targetX`).
+- Styles:
+  - idle: `--color-line-strong`, 1.5px
+  - traversed (in `traversedEdges`, not active): `--color-muted` at 60% opacity, 1.5px
+  - active: accent, 2px, `strokeDasharray 6 4`, `animation: ss-dash .6s linear infinite`, **plus a particle**: `<circle r="3" fill="var(--color-accent)"><animateMotion dur="1.2s" repeatCount="indefinite" path={edgePath} /></circle>` (omitted under reduced motion)
+- Label: if the reducer has a hand-off label for this edge within the active window, render it with `EdgeLabelRenderer` as a pill: `absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-accent/30 bg-surface px-2 py-0.5 text-[11px] font-medium text-accent shadow-card`, fading in and out with motion. Show at most 2 labels at once (the newest).
+
+### 11.8 `AgentNode.tsx`
+```
+┌──────────────────────────────────────────┐ 210×76, rounded-[10px], border, bg-surface, px-3 py-2.5
+│ ┌──┐  Profile Analyst                 ⟳ │ row 1: icon tile 32×32 rounded-[8px] + name (13px/600, truncate) + status icon 14px
+│ └──┘  Reading resume: 4,210 chars…       │ row 2 (pl-[44px]): thought 12px muted truncate (title=full)
+└──────────────────────────────────────────┘
+```
+- Name: `agent.label` (full names; they fit at 210px: "Profile Analyst", "GitHub Enricher", "Supervisor", "SOP Writer"…).
+- Thought: `state.thoughts[id] || agent.role`.
+- Icon tile per state: idle `bg-subtle text-muted`; running `bg-accent-soft text-accent`; done `bg-ok-soft text-ok`; failed `bg-err-soft text-err`; waiting `bg-warn-soft text-warn`; skipped `bg-subtle text-muted`.
+- Node container per state: idle `border-line`; running `border-accent ring-4 ring-accent/10 animate-[ss-pulse_1.6s_ease-in-out_infinite]`; done `border-line`; failed `border-err/50`; waiting `border-warn ring-4 ring-warn/10`; skipped `border-dashed opacity-60`.
+- Status icon: running `Loader2 animate-spin text-accent`; done `CheckCircle2 text-ok`; failed `XCircle text-err`; waiting `Hand text-warn`; skipped `MinusCircle text-muted`; idle `Circle text-line-strong`.
+- Tooltip on hover (shadcn Tooltip, side top): the full role plus the full thought.
+- Agent icons (lucide): profile_analyst `FileText`, clarifier `MessageCircleQuestion`, github_enricher `Github`, planner `Map`, supervisor `GitBranch`, scout `Search`, verifier `ShieldCheck`, matcher `Network`, ranker `Trophy`, sop_writer `PenLine`, critic `ScanSearch`, finalizer `FileCheck2`.
+
+### 11.9 `VerifierPoolNode.tsx` (230×300)
+```
+┌ ShieldCheck  Verifiers            ⟳ ┐  header row like AgentNode
+│ Reads official pages in parallel     │  12px muted
+│ ┌────────┬────────┬────────┐         │  3 equal mini stats: Running · Verified · Rejected
+│ │   5    │   2    │   7    │         │  value 15px/600 tabular, label 10px uppercase muted
+│ └────────┴────────┴────────┘         │
+│ [● daad.de    ] [● tum.de     ]      │  chip grid: grid-cols-2 gap-1.5, chip h-6 rounded-md
+│ [● nus.edu.sg ] [✓ uoft.ca    ]      │  border px-1.5 text-[11px] truncate
+│ … up to 10 chips                      │
+│ +6 more                               │  Small, only if > 10
+└───────────────────────────────────────┘
+```
+Chip states (dot or icon + border):
+| State | Look |
+|---|---|
+| queued | `border-line text-muted`, gray dot |
+| fetching | `border-accent/30 text-ink`, accent dot pulsing |
+| reading | `border-accent text-ink`, accent dot |
+| verified | `border-ok/40 bg-ok-soft text-ok`, Check icon |
+| rejected | `border-line text-muted line-through opacity-60` |
+| failed | `border-err/40 text-err`, X icon |
+| fallback flash | adds `ring-2 ring-warn/40` for the flash ticks |
+
+Sort chips: active (fetching/reading) first, then verified, queued, rejected. Tooltip per chip: title, state, last message, URL.
+
+### 11.10 `MobileTimeline.tsx`
+A vertical list in agent order (profile_analyst, clarifier, github_enricher, planner, scout, verifier, matcher, supervisor, ranker, sop_writer, critic, finalizer). Each row is `grid grid-cols-[32px_1fr_auto] gap-3 py-3` with a 1px vertical connector line between icon tiles: icon tile (same state styles), name + thought (truncate), StatusPill. The verifier row shows the chip grid below it, with up to 6 chips.
+
+---
+
+## 12. Common components (exact)
+- **Panel**: props `title?`, `subtitle?`, `actions?`, `className`, `bodyClassName`, `scroll?: boolean`. Structure: `section.flex.flex-col.h-full.min-h-0.bg-surface.border.border-line.rounded-[12px].shadow-card` → header `flex items-start justify-between gap-4 px-5 pt-4 pb-3 border-b border-line` (omitted without a title) → body `flex-1 min-h-0` (wrapped in `ScrollArea` when `scroll`) with `px-5 py-3`. `data-testid="panel"`.
+- **StatusPill**: `inline-flex items-center gap-1.5 h-6 rounded-full border px-2 text-xs font-medium`. Tones: neutral, accent, ok, warn, err (border `/30`, text tone, bg `-soft`). A 6px dot or a 12px icon. Status map: queued neutral "Queued", running accent "Running" (pulsing dot), waiting_input warn "Needs input", finished ok "Finished", failed err "Failed".
+- **KpiTile**, **ScoreRing**, **SourceChip**, **Favicon**, **EmptyState** as described above.
+- **PageHeader**: `flex items-end justify-between gap-4 mb-8`; title block (H1 + Small) and an actions slot.
+
+---
+
+## 13. Accessibility and copy
+- Every icon-only button has `aria-label` and a Tooltip.
+- Focus: shadcn default ring (`ring-accent/40`); never remove outlines.
+- Color is never the only signal (pills have text; nodes have icons).
+- Contrast: `text-muted` on `bg-surface` meets 4.5:1 (zinc-500 on white is OK).
+- Copy: short, plain, sentence case. No "AI-powered", no emoji in the UI.
+- `<title>`: Home "ScholarSwarm"; Run "(4/6) Verify · Rahul Sharma · ScholarSwarm" while live, "✓ Results · Rahul Sharma" when finished; History "History · ScholarSwarm".
+
+---
+
+## 14. Tests (all in E2B)
+
+### 14.1 Unit (Vitest, jsdom)
+- `runReducer.test.ts` (all ported cases plus traversedEdges)
+- `coverage.test.ts`
+- `replay.test.ts`
+- `format.test.ts`
+- Component smoke tests with Testing Library: Composer validity (disabled → enabled at 20 words; enabled with a file), StatusPill text, MatchCard renders facts.
+
+### 14.2 E2E (Playwright, Chromium)
+- `playwright.config.ts`: `webServer` = `npm run preview -- --port 4173`. Projects: `desktop-1440` (1440×900), `desktop-1280` (1280×800), `laptop-1024` (1024×768), `mobile-390` (390×844, isMobile). `use.colorScheme` default light; one extra project `desktop-1440-dark`.
+- **All API calls are mocked** with `page.route('**/api/**', …)` from fixtures in `frontend/e2e/fixtures/`: `meta.json`, `runs.json`, `run-finished.json` (RunDetail with report), `events-full.json`, `graph.json`. The fixtures come from a real run (§15.3 `export-fixture`). Also build a "mid-run" fixture: `events-mid.json` = the events up to and including the first `opportunity_verified` event. The SSE endpoint is mocked by returning `text/event-stream` with those events (each as `data: <json>\n\n`).
+- `flows.spec.ts`: (1) home: type 25 words, the hints update, the button enables, clicking it posts FormData with `description` and navigates (mock `POST /api/runs` → `{run_id: "fixture"}`); (2) attach a PDF via `setInputFiles` → the chip shows "Resume"; (3) the sample chip fills the text; (4) the Advanced sheet opens, a chaos switch toggles; (5) the run mid state shows ≥ 3 nodes "done", one "running", and the worker pool ≥ 1 chip; (6) the finished state shows the summary and 5 MatchCards, and the Requirements accordion opens; (7) the Unlock more what-if posts and renders a result (mock `whatif`); (8) replay at 20× reaches the results; (9) the history row click opens the run.
+
+### 14.3 Layout invariants — `layout.spec.ts` (the guard against "asymmetric and broken")
+Run for **every project** on these pages: `/`, `/runs`, `/runs/fixture` (mid-run), `/runs/fixture` (finished, Matches tab), `/runs/fixture` (finished, SOP tab), `/runs/fixture?replay=1&speed=20` (after 2s). Assertions (write one helper per assertion in `e2e/fixtures.ts`):
+1. **No horizontal scroll:** `document.documentElement.scrollWidth <= window.innerWidth`.
+2. **Aligned containers:** all `[data-testid=container]` elements have the same `left` and `width` (±1px).
+3. **Centered home:** on `/`, the composer's center x equals the viewport's center x (±2px), and the headline is `text-align: center`.
+4. **Equal rows:** for each `[data-row]`, its direct children have identical `height` (±1px) and, when the row is `grid-cols-N`, identical `width` (±1px).
+5. **No node overlap:** the bounding boxes of all `.react-flow__node` elements are pairwise non-intersecting (allow 0px touching).
+6. **Edges attach to nodes:** for each `.react-flow__edge path`, its start and end points (`getPointAtLength(0)` and `getTotalLength()`) lie within 4px of some node's bounding box (convert with `getScreenCTM()`).
+7. **No clipped text:** every element matching `[data-testid=node-name], h1, h2, h3, button, [data-testid=kpi-value]` has `scrollWidth <= clientWidth + 1`, unless it has class `truncate` **and** a non-empty `title` attribute.
+8. **No text overflow out of panels:** for every `[data-testid=panel]`, each descendant text element's right edge is ≤ the panel's right edge + 1px.
+9. **Minimum readable canvas:** the React Flow viewport zoom (read from the `.react-flow__viewport` transform) is ≥ 0.80 at 1280/1440 and ≥ 0.70 at 1024. (The math: content ≈ 1278 flow units wide, including the loop bulges; the canvas is ≈ 1214px at 1280+ → 0.82 with 8% padding, and ≈ 958px at 1024 → 0.72 with 2% padding.)
+10. **Tap targets (mobile-390):** all buttons have height ≥ 32px.
+Any failure blocks the phase. Fix the layout, not the test.
+
+### 14.4 Screenshots — `screenshots.spec.ts`
+Saves `docs/screenshots/{page}-{project}.png` for: home, home-with-files, run-mid, run-finished-matches, run-finished-unlock, run-finished-sop, history. Full page. The agent **looks at every screenshot** (open the PNGs) and fixes anything that looks unbalanced before finishing a phase.
+
+### 14.5 Python
+`pytest -q` stays green (§5.4).
+
+---
+
+## 15. E2B workflow
+
+### 15.1 Custom template (fixes the OOM)
+`e2b/e2b.Dockerfile`:
+- `FROM e2bdev/code-interpreter:latest` (or E2B's current base image; check https://e2b.dev/docs/sandbox-template).
+- Install Node 20 LTS (if not present), `uv`, and the Playwright Chromium system deps (`npx -y playwright@<same version as package.json> install-deps chromium`).
+- Pre-create `/home/user/.cache` so the browser cache persists.
+- Build: `npx -y @e2b/cli template build -n scholarswarm-dev -d e2b/e2b.Dockerfile --cpu-count 2 --memory-mb 4096`. Check the flag names with `npx @e2b/cli template build --help`. The CLI needs the human to have logged in once (`npx @e2b/cli auth login`; see human-plan). Record the template id in `e2b/README.md`.
+- **Fallback if the template can't be built:** use the default template, but never run two heavy things at once (install, build, browser, app), set `NODE_OPTIONS=--max-old-space-size=320` for builds, and skip real runs (use fixtures only). Tell the human.
+
+### 15.2 `backend/scripts/e2b_run.py` (it does not exist yet — create it)
+Python 3.11+ script using the `e2b` SDK. Run it locally with `uv run --python 3.13 --with e2b python backend/scripts/e2b_run.py <cmd>` (the local default Python is 3.7, which is too old). Behaviors:
+- The key comes from `backend/.env` (`E2B_API_KEY=` line; parse manually) or the environment. Never print it.
+- The sandbox id is stored in `backend/data/.e2b_sandbox` (gitignored).
+- Upload: build a tar.gz in memory of `git ls-files -co --exclude-standard` output (tracked + new files, respecting .gitignore), excluding `frontend/node_modules`, `frontend/dist`, `backend/.venv`. Upload to `/home/user/app.tgz`, extract to `/home/user/app`. Upload `backend/.env` to `/home/user/app/backend/.env`.
+- Print command output as it streams. Use `PYTHONIOENCODING=utf-8`-safe printing (write bytes, or `errors="replace"`), because Windows consoles crash on emoji otherwise.
+
+| Command | Does |
+|---|---|
+| `up [--template scholarswarm-dev]` | create the sandbox (timeout 3600s), upload, `uv venv` + `uv pip install -r backend/requirements.txt` (**use uv, not pip; pip OOMs**), `cd frontend && npm ci` |
+| `sync` | re-upload and extract (keeps `.venv` and `node_modules`) |
+| `pytest [args]` | `cd backend && .venv/bin/python -m pytest -q {args}` |
+| `web-test` | `cd frontend && npx tsc --noEmit && npx vitest run` |
+| `e2e` | `cd frontend && npx playwright install chromium && npm run build && npx playwright test` (then download `docs/screenshots/*.png` and `frontend/test-results/**` back to the local repo) |
+| `gen-api` | start uvicorn if not running, then `cd frontend && npm run gen:api`, and download `src/api/schema.d.ts` back |
+| `build` | `cd frontend && npm run build` |
+| `serve` | start uvicorn on 0.0.0.0:8000 in the background (`nohup … > /home/user/uvicorn.log 2>&1 &`), wait for `/api/health`, print `https://` + `sandbox.get_host(8000)` |
+| `dev` | `serve`, then `npx vite --host 0.0.0.0 --port 5173` in the background; print the 5173 host URL |
+| `run-sample <name>` | `curl -X POST :8000/api/runs -F sample=<name>`, print the run id (real run, about $0.13, needs the 4 GB template) |
+| `export-fixture <run_id>` | download `/api/meta`, `/api/runs`, `/api/runs/<id>`, `/api/runs/<id>/events.json`, `/api/runs/<id>/graph` into `frontend/e2e/fixtures/` (`meta.json`, `runs.json`, `run-finished.json`, `events-full.json`, `graph.json`) and derive `events-mid.json`. **Scrub:** replace the student's email and phone in the fixtures with placeholders. |
+| `logs` | tail the uvicorn and vite logs |
+| `down` | kill the sandbox |
+
+**Lessons already learned (don't repeat):** the default sandbox has ~470 MB RAM → pip and real runs got OOM-killed; `apt`/Playwright install running next to uvicorn killed uvicorn; the sandbox Python is 3.11 (fine); Node 20 is present.
+
+---
+
+## 16. Phases (in order; each ends with green checks in E2B and a commit)
+
+| # | Phase | Work | Acceptance |
+|---|---|---|---|
+| 0 | E2B foundation | §15.1 template (or fallback), §15.2 script | `up` → `pytest` green; `serve` URL opens the old UI |
+| 1 | API prep | §5.1, §5.2, §5.4 (meta, events.json, response models, moved captions/samples) | `pytest` green; `/docs` shows the new schemas |
+| 2 | Frontend scaffold | Vite app, Tailwind v4 tokens (§6), shadcn init + components, fonts, AppShell/Header/Container/LogoMark/theme, router with placeholder pages, `gen-api` → `schema.d.ts`, `types.ts` | `web-test` green; `dev` URL shows the header and empty pages in light and dark; `tsc` has no errors |
+| 3 | Data layer | client, queries, runReducer (port and tests), useRunStream, useReplay, coverage (moved), speech hook; `run-sample rahul` then `export-fixture` | all Vitest green (ported cases included); fixtures committed |
+| 4 | Home | §10.1 fully | `flows` 1–4 pass; layout invariants pass on `/` for all projects; screenshots reviewed |
+| 5 | Run page — live | §10.2 + §11 + §12 | `flows` 5 passes; invariants pass on mid-run for all projects (especially 5, 6, 9); a live `run-sample` viewed on the `dev` URL looks right |
+| 6 | Run page — finished | §10.3, §10.4, print | `flows` 6–7 pass; invariants pass on Matches and SOP |
+| 7 | History, replay, 404 | §10.5, §10.6, ReplayBar | `flows` 8–9 pass; invariants pass |
+| 8 | Polish pass | Dark mode project, reduced motion, empty/loading (Skeleton) states everywhere, toasts on errors, keyboard (Ctrl+Enter, Esc closes sheet) | all E2E green on all 5 projects; every screenshot reviewed and looks balanced |
+| 9 | Switch over | §5.3 SPA serving; delete NiceGUI (§2 list); `requirements.txt` without nicegui; README/STATUS/docs updates (new screenshots, how to run via E2B) | `pytest` green; `build` then `serve` URL shows the React app at `/`, deep link `/runs/<id>` works on reload; human sign-off (human-plan §4) |
+
+---
+
+## 17. Definition of done
+- [ ] The canvas is readable: zoom ≥ 0.8 at 1280+, ≥ 0.7 at 1024; MobileTimeline below 1024.
+- [ ] All pages pass the layout invariants (§14.3) at 1440, 1280, 1024 and 390 widths, light and dark.
+- [ ] The swarm canvas has no overlapping nodes, no cut-off names, and every edge touches its nodes; active hand-offs animate with labels; verifier chips update live.
+- [ ] Home is centered and symmetric; the composer supports files, typing and voice; Ctrl+Enter works.
+- [ ] Run page rows have equal heights; no panel has an empty half; the finished view leads with results.
+- [ ] Replay works from History and from the run header.
+- [ ] NiceGUI is fully removed; FastAPI serves the built SPA; `pytest`, Vitest and Playwright are all green in E2B.
+- [ ] `docs/screenshots/` contains the final screenshots; no secrets in git.
