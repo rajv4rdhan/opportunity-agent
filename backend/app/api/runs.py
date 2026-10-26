@@ -15,6 +15,8 @@ from sse_starlette.sse import EventSourceResponse
 from app.config import BACKEND_DIR, settings
 from app.core import store
 from app.core.events import subscribe
+from app.models.api import RunDetail, RunSummary
+from app.models.events import Event
 from app.models.inputs import RunForm
 from app.models.profile import TestScores
 from app.models.report import FinalReport
@@ -155,17 +157,26 @@ async def create_run(
     return {"run_id": run_id}
 
 
-@router.get("/runs")
-async def list_runs(limit: int = 50) -> list[dict]:
-    return await store.list_runs(limit=limit)
+@router.get("/runs", response_model=list[RunSummary])
+async def list_runs(limit: int = 50) -> list[RunSummary]:
+    return [RunSummary.model_validate(run) for run in await store.list_runs(limit=limit)]
 
 
-@router.get("/runs/{run_id}")
-async def get_run(run_id: str) -> dict:
+@router.get("/runs/{run_id}", response_model=RunDetail)
+async def get_run(run_id: str) -> RunDetail:
     run = await store.get_run(run_id)
     if run is None:
         raise HTTPException(status_code=404, detail="Run not found")
-    return run
+    return RunDetail.model_validate(run)
+
+
+@router.get("/runs/{run_id}/events.json", response_model=list[Event])
+async def run_events_json(run_id: str) -> list[Event]:
+    """Every stored event in order; used by replay and by the test fixtures."""
+    run = await store.get_run(run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+    return await store.events_after(run_id, 0, 100_000)
 
 
 @router.get("/runs/{run_id}/events")

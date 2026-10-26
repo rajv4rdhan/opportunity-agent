@@ -146,16 +146,24 @@ async def list_runs(limit: int = 50) -> list[dict[str, Any]]:
     runs = []
     for row in rows:
         data = dict(row)
-        report = _loads(data.pop("report_json", None), None) or {}
-        stats = report.get("stats") or {}
-        data["duration_sec"] = stats.get("duration_sec") or 0
-        data["verified_count"] = sum(
-            1
-            for opportunity in report.get("all_opportunities", [])
-            if opportunity.get("verification") != "unverified"
-        )
-        if not data.get("student_name"):
-            data["student_name"] = (report.get("profile") or {}).get("name")
+        raw = data.pop("report_json", None)
+        report = _loads(raw, None)
+        if report is None:
+            data["duration_sec"] = None
+            data["verified_count"] = None
+        else:
+            stats = report.get("stats") or {}
+            try:
+                data["duration_sec"] = float(stats.get("duration_sec") or 0) or None
+            except (TypeError, ValueError):
+                data["duration_sec"] = None
+            data["verified_count"] = sum(
+                1
+                for opportunity in report.get("all_opportunities", [])
+                if opportunity.get("verification") != "unverified"
+            )
+            if not data.get("student_name"):
+                data["student_name"] = (report.get("profile") or {}).get("name")
         runs.append(data)
     return runs
 

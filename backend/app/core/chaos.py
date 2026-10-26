@@ -20,6 +20,17 @@ CHAOS_DESCRIPTIONS = {
     "github_rate_limited": "GitHub 403 once → unauthenticated retry",
 }
 
+CHAOS_LABELS = {
+    "search_primary_down": "Primary search down",
+    "fetch_timeout": "Page fetch timeout",
+    "llm_bad_json": "Model returns bad JSON",
+    "graph_db_down": "Graph database down",
+    "github_rate_limited": "GitHub rate limited",
+}
+
+# Short captions are served to the React client by /api/meta.
+CHAOS_CAPTIONS = CHAOS_DESCRIPTIONS
+
 _fired: dict[str, set[str]] = {}
 
 
