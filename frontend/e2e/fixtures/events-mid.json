@@ -1,0 +1,1763 @@
+[
+  {
+    "id": 23,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:07.631140Z",
+    "type": "run_started",
+    "agent": null,
+    "message": "Run started",
+    "data": {
+      "run_id": "28cec885bad4"
+    }
+  },
+  {
+    "id": 24,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:07.640709Z",
+    "type": "agent_started",
+    "agent": "profile_analyst",
+    "message": "profile_analyst",
+    "data": {}
+  },
+  {
+    "id": 25,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:07.656265Z",
+    "type": "log",
+    "agent": "profile_analyst",
+    "message": "Read resume: 1080 chars; transcript: 301 chars",
+    "data": {}
+  },
+  {
+    "id": 26,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:09.996411Z",
+    "type": "tool_call",
+    "agent": "profile_analyst",
+    "message": "llm: calling openai/deepseek-v4.1-flash",
+    "data": {
+      "label": "llm",
+      "provider": "openai/deepseek-v4.1-flash"
+    }
+  },
+  {
+    "id": 27,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:18.322282Z",
+    "type": "tool_result",
+    "agent": "profile_analyst",
+    "message": "llm: openai/deepseek-v4.1-flash returned StudentProfile",
+    "data": {
+      "label": "llm",
+      "provider": "openai/deepseek-v4.1-flash",
+      "result": "StudentProfile"
+    }
+  },
+  {
+    "id": 28,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:18.331117Z",
+    "type": "log",
+    "agent": "profile_analyst",
+    "message": "Missing profile fields: test_scores",
+    "data": {}
+  },
+  {
+    "id": 29,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:18.337075Z",
+    "type": "agent_finished",
+    "agent": "profile_analyst",
+    "message": "profile_analyst finished in 10.69s",
+    "data": {
+      "duration_sec": 10.69,
+      "updated": [
+        "profile"
+      ],
+      "counts": {},
+      "student_name": "Rahul Sharma",
+      "profile_preview": {
+        "name": "Rahul Sharma",
+        "current_degree": "B.Tech Computer Science and Engineering",
+        "major": "Computer Science and Engineering",
+        "university": "Lovely Professional University",
+        "cgpa": 8.2,
+        "cgpa_scale": 10.0,
+        "target_degree": "MS",
+        "target_fields": [
+          "Computer Science",
+          "Artificial Intelligence"
+        ],
+        "target_countries": [
+          "Canada",
+          "Germany",
+          "Singapore"
+        ],
+        "test_scores": {},
+        "skills": [
+          "python",
+          "pytorch",
+          "fastapi",
+          "sql",
+          "docker",
+          "git",
+          "langchain",
+          "retrieval-augmented generation"
+        ],
+        "projects": [
+          {
+            "name": "RAG Chatbot for Course Notes",
+            "source": "resume",
+            "url": null
+          },
+          {
+            "name": "Resume Parser",
+            "source": "resume",
+            "url": null
+          }
+        ],
+        "budget_inr_per_year": 1500000
+      }
+    }
+  },
+  {
+    "id": 30,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:18.354327Z",
+    "type": "agent_started",
+    "agent": "supervisor",
+    "message": "supervisor",
+    "data": {}
+  },
+  {
+    "id": 31,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:18.360138Z",
+    "type": "decision",
+    "agent": "supervisor",
+    "message": "Profile is complete \u2192 enriching with GitHub",
+    "data": {}
+  },
+  {
+    "id": 32,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:18.366006Z",
+    "type": "agent_finished",
+    "agent": "supervisor",
+    "message": "supervisor finished in 0.01s",
+    "data": {
+      "duration_sec": 0.01,
+      "updated": [
+        "next"
+      ],
+      "counts": {}
+    }
+  },
+  {
+    "id": 33,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:18.372789Z",
+    "type": "agent_started",
+    "agent": "github_enricher",
+    "message": "github_enricher",
+    "data": {}
+  },
+  {
+    "id": 34,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:18.382038Z",
+    "type": "tool_call",
+    "agent": "github_enricher",
+    "message": "github: calling api",
+    "data": {
+      "label": "github",
+      "provider": "api"
+    }
+  },
+  {
+    "id": 35,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:18.749590Z",
+    "type": "tool_result",
+    "agent": "github_enricher",
+    "message": "github: api returned dict",
+    "data": {
+      "label": "github",
+      "provider": "api",
+      "result": "dict"
+    }
+  },
+  {
+    "id": 36,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:18.755557Z",
+    "type": "tool_call",
+    "agent": "github_enricher",
+    "message": "github: calling api",
+    "data": {
+      "label": "github",
+      "provider": "api"
+    }
+  },
+  {
+    "id": 37,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:19.423849Z",
+    "type": "tool_result",
+    "agent": "github_enricher",
+    "message": "github: api returned 63 item(s)",
+    "data": {
+      "label": "github",
+      "provider": "api",
+      "result": "63 item(s)"
+    }
+  },
+  {
+    "id": 38,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:19.431445Z",
+    "type": "tool_call",
+    "agent": "github_enricher",
+    "message": "github: calling api",
+    "data": {
+      "label": "github",
+      "provider": "api"
+    }
+  },
+  {
+    "id": 39,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:19.430646Z",
+    "type": "tool_call",
+    "agent": "github_enricher",
+    "message": "github: calling api",
+    "data": {
+      "label": "github",
+      "provider": "api"
+    }
+  },
+  {
+    "id": 40,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:19.431139Z",
+    "type": "tool_call",
+    "agent": "github_enricher",
+    "message": "github: calling api",
+    "data": {
+      "label": "github",
+      "provider": "api"
+    }
+  },
+  {
+    "id": 41,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:19.430189Z",
+    "type": "tool_call",
+    "agent": "github_enricher",
+    "message": "github: calling api",
+    "data": {
+      "label": "github",
+      "provider": "api"
+    }
+  },
+  {
+    "id": 42,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:19.432396Z",
+    "type": "tool_call",
+    "agent": "github_enricher",
+    "message": "github: calling api",
+    "data": {
+      "label": "github",
+      "provider": "api"
+    }
+  },
+  {
+    "id": 43,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:19.431658Z",
+    "type": "tool_call",
+    "agent": "github_enricher",
+    "message": "github: calling api",
+    "data": {
+      "label": "github",
+      "provider": "api"
+    }
+  },
+  {
+    "id": 44,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:19.431924Z",
+    "type": "tool_call",
+    "agent": "github_enricher",
+    "message": "github: calling api",
+    "data": {
+      "label": "github",
+      "provider": "api"
+    }
+  },
+  {
+    "id": 45,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:19.430471Z",
+    "type": "tool_call",
+    "agent": "github_enricher",
+    "message": "github: calling api",
+    "data": {
+      "label": "github",
+      "provider": "api"
+    }
+  },
+  {
+    "id": 46,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:19.842768Z",
+    "type": "tool_result",
+    "agent": "github_enricher",
+    "message": "github: api returned dict",
+    "data": {
+      "label": "github",
+      "provider": "api",
+      "result": "dict"
+    }
+  },
+  {
+    "id": 47,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:19.868937Z",
+    "type": "tool_result",
+    "agent": "github_enricher",
+    "message": "github: api returned dict",
+    "data": {
+      "label": "github",
+      "provider": "api",
+      "result": "dict"
+    }
+  },
+  {
+    "id": 48,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:19.860618Z",
+    "type": "tool_result",
+    "agent": "github_enricher",
+    "message": "github: api returned dict",
+    "data": {
+      "label": "github",
+      "provider": "api",
+      "result": "dict"
+    }
+  },
+  {
+    "id": 49,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:19.890486Z",
+    "type": "tool_result",
+    "agent": "github_enricher",
+    "message": "github: api returned dict",
+    "data": {
+      "label": "github",
+      "provider": "api",
+      "result": "dict"
+    }
+  },
+  {
+    "id": 50,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:19.865876Z",
+    "type": "tool_result",
+    "agent": "github_enricher",
+    "message": "github: api returned dict",
+    "data": {
+      "label": "github",
+      "provider": "api",
+      "result": "dict"
+    }
+  },
+  {
+    "id": 51,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:19.908100Z",
+    "type": "tool_result",
+    "agent": "github_enricher",
+    "message": "github: api returned dict",
+    "data": {
+      "label": "github",
+      "provider": "api",
+      "result": "dict"
+    }
+  },
+  {
+    "id": 52,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:19.857555Z",
+    "type": "tool_result",
+    "agent": "github_enricher",
+    "message": "github: api returned dict",
+    "data": {
+      "label": "github",
+      "provider": "api",
+      "result": "dict"
+    }
+  },
+  {
+    "id": 53,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:19.928148Z",
+    "type": "tool_result",
+    "agent": "github_enricher",
+    "message": "github: api returned dict",
+    "data": {
+      "label": "github",
+      "provider": "api",
+      "result": "dict"
+    }
+  },
+  {
+    "id": 54,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:19.934520Z",
+    "type": "tool_call",
+    "agent": "github_enricher",
+    "message": "llm: calling openai/deepseek-v4.1-flash",
+    "data": {
+      "label": "llm",
+      "provider": "openai/deepseek-v4.1-flash"
+    }
+  },
+  {
+    "id": 55,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:34.788339Z",
+    "type": "tool_result",
+    "agent": "github_enricher",
+    "message": "llm: openai/deepseek-v4.1-flash returned GitHubInsights",
+    "data": {
+      "label": "llm",
+      "provider": "openai/deepseek-v4.1-flash",
+      "result": "GitHubInsights"
+    }
+  },
+  {
+    "id": 56,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:34.799386Z",
+    "type": "log",
+    "agent": "github_enricher",
+    "message": "Found 5 repo(s) not in the resume: llm-council, llm.c, nanochat, LLM101n, nn-zero-to-hero",
+    "data": {}
+  },
+  {
+    "id": 57,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:34.805430Z",
+    "type": "agent_finished",
+    "agent": "github_enricher",
+    "message": "github_enricher finished in 16.42s",
+    "data": {
+      "duration_sec": 16.42,
+      "updated": [
+        "github",
+        "profile"
+      ],
+      "counts": {},
+      "student_name": "Rahul Sharma",
+      "profile_preview": {
+        "name": "Rahul Sharma",
+        "current_degree": "B.Tech Computer Science and Engineering",
+        "major": "Computer Science and Engineering",
+        "university": "Lovely Professional University",
+        "cgpa": 8.2,
+        "cgpa_scale": 10.0,
+        "target_degree": "MS",
+        "target_fields": [
+          "Computer Science",
+          "Artificial Intelligence"
+        ],
+        "target_countries": [
+          "Canada",
+          "Germany",
+          "Singapore"
+        ],
+        "test_scores": {},
+        "skills": [
+          "python",
+          "pytorch",
+          "fastapi",
+          "sql",
+          "docker",
+          "git",
+          "langchain",
+          "retrieval-augmented generation"
+        ],
+        "projects": [
+          {
+            "name": "RAG Chatbot for Course Notes",
+            "source": "resume",
+            "url": null
+          },
+          {
+            "name": "Resume Parser",
+            "source": "resume",
+            "url": null
+          },
+          {
+            "name": "llm-council",
+            "source": "github",
+            "url": "https://github.com/karpathy/llm-council"
+          },
+          {
+            "name": "llm.c",
+            "source": "github",
+            "url": "https://github.com/karpathy/llm.c"
+          },
+          {
+            "name": "nanochat",
+            "source": "github",
+            "url": "https://github.com/karpathy/nanochat"
+          },
+          {
+            "name": "LLM101n",
+            "source": "github",
+            "url": "https://github.com/karpathy/LLM101n"
+          },
+          {
+            "name": "nn-zero-to-hero",
+            "source": "github",
+            "url": "https://github.com/karpathy/nn-zero-to-hero"
+          }
+        ],
+        "budget_inr_per_year": 1500000,
+        "github_username": "karpathy"
+      }
+    }
+  },
+  {
+    "id": 58,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:34.812209Z",
+    "type": "agent_started",
+    "agent": "planner",
+    "message": "planner",
+    "data": {}
+  },
+  {
+    "id": 59,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:35.876622Z",
+    "type": "log",
+    "agent": "planner",
+    "message": "Skipped 1 reused opportunity/opportunities outside this profile's field",
+    "data": {}
+  },
+  {
+    "id": 60,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:48:35.885056Z",
+    "type": "tool_call",
+    "agent": "planner",
+    "message": "llm: calling openai/deepseek-v4.1-flash",
+    "data": {
+      "label": "llm",
+      "provider": "openai/deepseek-v4.1-flash"
+    }
+  },
+  {
+    "id": 61,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:00.732567Z",
+    "type": "tool_result",
+    "agent": "planner",
+    "message": "llm: openai/deepseek-v4.1-flash returned PlannerOutput",
+    "data": {
+      "label": "llm",
+      "provider": "openai/deepseek-v4.1-flash",
+      "result": "PlannerOutput"
+    }
+  },
+  {
+    "id": 62,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:00.742621Z",
+    "type": "decision",
+    "agent": "planner",
+    "message": "The plan splits effort three ways across Canada, Germany and Singapore: government schemes for Indian nationals, university-level merit and tuition support in CS/AI, and paid research routes (RA/HiWi/research master's) that match your LLM and systems work. Two tasks also cover India-linked mobility and overseas funding schemes, since those often have early 2027 deadlines.",
+    "data": {}
+  },
+  {
+    "id": 63,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:00.749680Z",
+    "type": "agent_finished",
+    "agent": "planner",
+    "message": "planner finished in 25.93s",
+    "data": {
+      "duration_sec": 25.93,
+      "updated": [
+        "opportunities",
+        "plan",
+        "scout_round"
+      ],
+      "counts": {
+        "plan": 10,
+        "opportunities": 0
+      }
+    }
+  },
+  {
+    "id": 64,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:00.757889Z",
+    "type": "agent_started",
+    "agent": "scout",
+    "message": "scout",
+    "data": {}
+  },
+  {
+    "id": 65,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:00.769170Z",
+    "type": "tool_call",
+    "agent": "scout",
+    "message": "search: calling tavily",
+    "data": {
+      "label": "search",
+      "provider": "tavily"
+    }
+  },
+  {
+    "id": 66,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:00.769498Z",
+    "type": "tool_call",
+    "agent": "scout",
+    "message": "search: calling tavily",
+    "data": {
+      "label": "search",
+      "provider": "tavily"
+    }
+  },
+  {
+    "id": 67,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:00.769344Z",
+    "type": "tool_call",
+    "agent": "scout",
+    "message": "search: calling tavily",
+    "data": {
+      "label": "search",
+      "provider": "tavily"
+    }
+  },
+  {
+    "id": 68,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:00.769651Z",
+    "type": "tool_call",
+    "agent": "scout",
+    "message": "search: calling tavily",
+    "data": {
+      "label": "search",
+      "provider": "tavily"
+    }
+  },
+  {
+    "id": 69,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:03.569793Z",
+    "type": "tool_result",
+    "agent": "scout",
+    "message": "search: tavily returned 8 item(s)",
+    "data": {
+      "label": "search",
+      "provider": "tavily",
+      "result": "8 item(s)"
+    }
+  },
+  {
+    "id": 70,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:03.596846Z",
+    "type": "tool_call",
+    "agent": "scout",
+    "message": "search: calling tavily",
+    "data": {
+      "label": "search",
+      "provider": "tavily"
+    }
+  },
+  {
+    "id": 71,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:03.918793Z",
+    "type": "tool_result",
+    "agent": "scout",
+    "message": "search: tavily returned 8 item(s)",
+    "data": {
+      "label": "search",
+      "provider": "tavily",
+      "result": "8 item(s)"
+    }
+  },
+  {
+    "id": 72,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:03.927915Z",
+    "type": "tool_call",
+    "agent": "scout",
+    "message": "search: calling tavily",
+    "data": {
+      "label": "search",
+      "provider": "tavily"
+    }
+  },
+  {
+    "id": 73,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:04.355502Z",
+    "type": "tool_result",
+    "agent": "scout",
+    "message": "search: tavily returned 8 item(s)",
+    "data": {
+      "label": "search",
+      "provider": "tavily",
+      "result": "8 item(s)"
+    }
+  },
+  {
+    "id": 74,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:04.369752Z",
+    "type": "tool_call",
+    "agent": "scout",
+    "message": "search: calling tavily",
+    "data": {
+      "label": "search",
+      "provider": "tavily"
+    }
+  },
+  {
+    "id": 75,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:06.016941Z",
+    "type": "tool_result",
+    "agent": "scout",
+    "message": "search: tavily returned 8 item(s)",
+    "data": {
+      "label": "search",
+      "provider": "tavily",
+      "result": "8 item(s)"
+    }
+  },
+  {
+    "id": 76,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:06.023052Z",
+    "type": "tool_call",
+    "agent": "scout",
+    "message": "search: calling tavily",
+    "data": {
+      "label": "search",
+      "provider": "tavily"
+    }
+  },
+  {
+    "id": 77,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:06.269571Z",
+    "type": "tool_result",
+    "agent": "scout",
+    "message": "search: tavily returned 8 item(s)",
+    "data": {
+      "label": "search",
+      "provider": "tavily",
+      "result": "8 item(s)"
+    }
+  },
+  {
+    "id": 78,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:06.276034Z",
+    "type": "tool_call",
+    "agent": "scout",
+    "message": "search: calling tavily",
+    "data": {
+      "label": "search",
+      "provider": "tavily"
+    }
+  },
+  {
+    "id": 79,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:07.821206Z",
+    "type": "tool_result",
+    "agent": "scout",
+    "message": "search: tavily returned 8 item(s)",
+    "data": {
+      "label": "search",
+      "provider": "tavily",
+      "result": "8 item(s)"
+    }
+  },
+  {
+    "id": 80,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:07.827228Z",
+    "type": "tool_call",
+    "agent": "scout",
+    "message": "search: calling tavily",
+    "data": {
+      "label": "search",
+      "provider": "tavily"
+    }
+  },
+  {
+    "id": 81,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:07.977835Z",
+    "type": "tool_result",
+    "agent": "scout",
+    "message": "search: tavily returned 8 item(s)",
+    "data": {
+      "label": "search",
+      "provider": "tavily",
+      "result": "8 item(s)"
+    }
+  },
+  {
+    "id": 82,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:08.314156Z",
+    "type": "tool_result",
+    "agent": "scout",
+    "message": "search: tavily returned 8 item(s)",
+    "data": {
+      "label": "search",
+      "provider": "tavily",
+      "result": "8 item(s)"
+    }
+  },
+  {
+    "id": 83,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:08.708349Z",
+    "type": "tool_result",
+    "agent": "scout",
+    "message": "search: tavily returned 8 item(s)",
+    "data": {
+      "label": "search",
+      "provider": "tavily",
+      "result": "8 item(s)"
+    }
+  },
+  {
+    "id": 84,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.026040Z",
+    "type": "tool_result",
+    "agent": "scout",
+    "message": "search: tavily returned 8 item(s)",
+    "data": {
+      "label": "search",
+      "provider": "tavily",
+      "result": "8 item(s)"
+    }
+  },
+  {
+    "id": 85,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.050937Z",
+    "type": "candidate_found",
+    "agent": "scout",
+    "message": "Master of Science (MSc) \u2014 Department of Computer Science, University of Toronto \u2014 https://web.cs.toronto.edu/graduate/msc",
+    "data": {
+      "title": "Master of Science (MSc) \u2014 Department of Computer Science, University of Toronto",
+      "url": "https://web.cs.toronto.edu/graduate/msc",
+      "provider": "tavily",
+      "official": true
+    }
+  },
+  {
+    "id": 86,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.085148Z",
+    "type": "candidate_found",
+    "agent": "scout",
+    "message": "Fees and Scholarships - NUS Computing \u2014 https://www.comp.nus.edu.sg/programmes/pg/mai/scholarships",
+    "data": {
+      "title": "Fees and Scholarships - NUS Computing",
+      "url": "https://www.comp.nus.edu.sg/programmes/pg/mai/scholarships",
+      "provider": "tavily",
+      "official": true
+    }
+  },
+  {
+    "id": 87,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.113874Z",
+    "type": "candidate_found",
+    "agent": "scout",
+    "message": "Fees and Scholarships - NUS Computing \u2014 https://www.comp.nus.edu.sg/programmes/pg/mcomp-ai/scholarships",
+    "data": {
+      "title": "Fees and Scholarships - NUS Computing",
+      "url": "https://www.comp.nus.edu.sg/programmes/pg/mcomp-ai/scholarships",
+      "provider": "tavily",
+      "official": true
+    }
+  },
+  {
+    "id": 88,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.140667Z",
+    "type": "candidate_found",
+    "agent": "scout",
+    "message": "Central Sector Scheme of National Overseas Scholarship - Ministry of Social Justice and Empowerment \u2014 https://www.dosje.gov.in/schemes-and-services/central-sector-scheme-of-national-overseas-scholarship",
+    "data": {
+      "title": "Central Sector Scheme of National Overseas Scholarship - Ministry of Social Justice and Empowerment",
+      "url": "https://www.dosje.gov.in/schemes-and-services/central-sector-scheme-of-national-overseas-scholarship",
+      "provider": "tavily",
+      "official": true
+    }
+  },
+  {
+    "id": 89,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.158451Z",
+    "type": "candidate_found",
+    "agent": "scout",
+    "message": "Master of Science in Artificial Intelligence (MSAI) | NTU Singapore \u2014 https://www.ntu.edu.sg/education/graduate-programme/master-of-science-in-artificial-intelligence",
+    "data": {
+      "title": "Master of Science in Artificial Intelligence (MSAI) | NTU Singapore",
+      "url": "https://www.ntu.edu.sg/education/graduate-programme/master-of-science-in-artificial-intelligence",
+      "provider": "tavily",
+      "official": true
+    }
+  },
+  {
+    "id": 90,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.173842Z",
+    "type": "candidate_found",
+    "agent": "scout",
+    "message": "DAAD Zuse School of Embedded Composite Artificial Intelligence (SECAI): Scholarships for Master&#039;s students in AI - DAAD - Deutscher Akademischer Austauschdienst \u2014 https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database?detail=10000611",
+    "data": {
+      "title": "DAAD Zuse School of Embedded Composite Artificial Intelligence (SECAI): Scholarships for Master&#039;s students in AI - DAAD - Deutscher Akademischer Austauschdienst",
+      "url": "https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database?detail=10000611",
+      "provider": "tavily",
+      "official": true
+    }
+  },
+  {
+    "id": 91,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.185277Z",
+    "type": "candidate_found",
+    "agent": "scout",
+    "message": "Study Scholarships - Master Studies for All Academic Disciplines - DAAD - Deutscher Akademischer Austauschdienst \u2014 https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database?detail=50026200",
+    "data": {
+      "title": "Study Scholarships - Master Studies for All Academic Disciplines - DAAD - Deutscher Akademischer Austauschdienst",
+      "url": "https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database?detail=50026200",
+      "provider": "tavily",
+      "official": true
+    }
+  },
+  {
+    "id": 92,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.192534Z",
+    "type": "candidate_found",
+    "agent": "scout",
+    "message": "Study scholarships for STEM disciplines - DAAD - Deutscher Akademischer Austauschdienst \u2014 https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database?detail=57742130",
+    "data": {
+      "title": "Study scholarships for STEM disciplines - DAAD - Deutscher Akademischer Austauschdienst",
+      "url": "https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database?detail=57742130",
+      "provider": "tavily",
+      "official": true
+    }
+  },
+  {
+    "id": 93,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.201561Z",
+    "type": "candidate_found",
+    "agent": "scout",
+    "message": "Scholarships for AI and Machine Learning in 2027 - Abroadin \u2014 https://abroadin.com/blog/scholarships-for-ai",
+    "data": {
+      "title": "Scholarships for AI and Machine Learning in 2027 - Abroadin",
+      "url": "https://abroadin.com/blog/scholarships-for-ai",
+      "provider": "tavily",
+      "official": false
+    }
+  },
+  {
+    "id": 94,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.213170Z",
+    "type": "candidate_found",
+    "agent": "scout",
+    "message": "12 Artificial Intelligence jobs in Germany - Academic Positions \u2014 https://academicpositions.com/jobs/field/artificial-intelligence/country/germany",
+    "data": {
+      "title": "12 Artificial Intelligence jobs in Germany - Academic Positions",
+      "url": "https://academicpositions.com/jobs/field/artificial-intelligence/country/germany",
+      "provider": "tavily",
+      "official": false
+    }
+  },
+  {
+    "id": 95,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.220935Z",
+    "type": "candidate_found",
+    "agent": "scout",
+    "message": "32 Research assistant jobs - Academic Positions \u2014 https://academicpositions.com/jobs/position/research-assistant",
+    "data": {
+      "title": "32 Research assistant jobs - Academic Positions",
+      "url": "https://academicpositions.com/jobs/position/research-assistant",
+      "provider": "tavily",
+      "official": false
+    }
+  },
+  {
+    "id": 96,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.227113Z",
+    "type": "candidate_found",
+    "agent": "scout",
+    "message": "AI and Machine Learning Master's Programs in Canada for International Students (2027) \u2013 Assist \u2014 https://assist.applyboard.com/hc/en-us/articles/41760870409997-AI-and-Machine-Learning-Master-s-Programs-in-Canada-for-International-Students-2027",
+    "data": {
+      "title": "AI and Machine Learning Master's Programs in Canada for International Students (2027) \u2013 Assist",
+      "url": "https://assist.applyboard.com/hc/en-us/articles/41760870409997-AI-and-Machine-Learning-Master-s-Programs-in-Canada-for-International-Students-2027",
+      "provider": "tavily",
+      "official": false
+    }
+  },
+  {
+    "id": 97,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.236468Z",
+    "type": "candidate_found",
+    "agent": "scout",
+    "message": "MS in Artificial Intelligence in Germany: Top Universities, Fees, Eligibility and Scholarships \u2014 https://collegedunia.com/germany/article/ms-in-artificial-intelligence-in-germany",
+    "data": {
+      "title": "MS in Artificial Intelligence in Germany: Top Universities, Fees, Eligibility and Scholarships",
+      "url": "https://collegedunia.com/germany/article/ms-in-artificial-intelligence-in-germany",
+      "provider": "tavily",
+      "official": false
+    }
+  },
+  {
+    "id": 98,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.242392Z",
+    "type": "candidate_found",
+    "agent": "scout",
+    "message": "Which Canadian Universities Offer 100% Scholarships? (2027 Entry) \u2014 https://edvoy.com/faqs/universities-canada-100-percent-scholarships",
+    "data": {
+      "title": "Which Canadian Universities Offer 100% Scholarships? (2027 Entry)",
+      "url": "https://edvoy.com/faqs/universities-canada-100-percent-scholarships",
+      "provider": "tavily",
+      "official": false
+    }
+  },
+  {
+    "id": 99,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.257419Z",
+    "type": "candidate_found",
+    "agent": "scout",
+    "message": "Computer Science - Future graduate students | University of Saskatchewan \u2014 https://grad.usask.ca/programs/computer-science.php",
+    "data": {
+      "title": "Computer Science - Future graduate students | University of Saskatchewan",
+      "url": "https://grad.usask.ca/programs/computer-science.php",
+      "provider": "tavily",
+      "official": false
+    }
+  },
+  {
+    "id": 100,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.269983Z",
+    "type": "log",
+    "agent": "scout",
+    "message": "15 new candidate(s) from 10 query/queries",
+    "data": {}
+  },
+  {
+    "id": 101,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.277018Z",
+    "type": "agent_finished",
+    "agent": "scout",
+    "message": "scout finished in 12.51s",
+    "data": {
+      "duration_sec": 12.51,
+      "updated": [
+        "candidates",
+        "pending_verify"
+      ],
+      "counts": {
+        "candidates": 15,
+        "pending_verify": 15
+      }
+    }
+  },
+  {
+    "id": 102,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.300906Z",
+    "type": "agent_started",
+    "agent": "verifier",
+    "message": "verifier",
+    "data": {
+      "worker": "https://comp.nus.edu.sg/programmes/pg/mcomp-ai/scholarships",
+      "title": "Fees and Scholarships - NUS Computing",
+      "domain": "nus.edu.sg"
+    }
+  },
+  {
+    "id": 103,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.300324Z",
+    "type": "agent_started",
+    "agent": "verifier",
+    "message": "verifier",
+    "data": {
+      "worker": "https://web.cs.toronto.edu/graduate/msc",
+      "title": "Master of Science (MSc) \u2014 Department of Computer Science, University of Toronto",
+      "domain": "toronto.edu"
+    }
+  },
+  {
+    "id": 104,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.332853Z",
+    "type": "agent_started",
+    "agent": "verifier",
+    "message": "verifier",
+    "data": {
+      "worker": "https://ntu.edu.sg/education/graduate-programme/master-of-science-in-artificial-intelligence",
+      "title": "Master of Science in Artificial Intelligence (MSAI) | NTU Singapore",
+      "domain": "ntu.edu.sg"
+    }
+  },
+  {
+    "id": 105,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.347276Z",
+    "type": "tool_call",
+    "agent": "verifier",
+    "message": "fetch: calling jina",
+    "data": {
+      "label": "fetch",
+      "provider": "jina",
+      "worker": "https://ntu.edu.sg/education/graduate-programme/master-of-science-in-artificial-intelligence"
+    }
+  },
+  {
+    "id": 106,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.317234Z",
+    "type": "agent_started",
+    "agent": "verifier",
+    "message": "verifier",
+    "data": {
+      "worker": "https://dosje.gov.in/schemes-and-services/central-sector-scheme-of-national-overseas-scholarship",
+      "title": "Central Sector Scheme of National Overseas Scholarship - Ministry of Social Justice and Empowerment",
+      "domain": "dosje.gov.in"
+    }
+  },
+  {
+    "id": 107,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.322364Z",
+    "type": "tool_call",
+    "agent": "verifier",
+    "message": "fetch: calling jina",
+    "data": {
+      "label": "fetch",
+      "provider": "jina",
+      "worker": "https://comp.nus.edu.sg/programmes/pg/mcomp-ai/scholarships"
+    }
+  },
+  {
+    "id": 108,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.359655Z",
+    "type": "tool_call",
+    "agent": "verifier",
+    "message": "fetch: calling jina",
+    "data": {
+      "label": "fetch",
+      "provider": "jina",
+      "worker": "https://dosje.gov.in/schemes-and-services/central-sector-scheme-of-national-overseas-scholarship"
+    }
+  },
+  {
+    "id": 109,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.339354Z",
+    "type": "tool_call",
+    "agent": "verifier",
+    "message": "fetch: calling jina",
+    "data": {
+      "label": "fetch",
+      "provider": "jina",
+      "worker": "https://web.cs.toronto.edu/graduate/msc"
+    }
+  },
+  {
+    "id": 110,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.300562Z",
+    "type": "agent_started",
+    "agent": "verifier",
+    "message": "verifier",
+    "data": {
+      "worker": "https://comp.nus.edu.sg/programmes/pg/mai/scholarships",
+      "title": "Fees and Scholarships - NUS Computing",
+      "domain": "nus.edu.sg"
+    }
+  },
+  {
+    "id": 111,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:13.399918Z",
+    "type": "tool_call",
+    "agent": "verifier",
+    "message": "fetch: calling jina",
+    "data": {
+      "label": "fetch",
+      "provider": "jina",
+      "worker": "https://comp.nus.edu.sg/programmes/pg/mai/scholarships"
+    }
+  },
+  {
+    "id": 112,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:14.484095Z",
+    "type": "tool_result",
+    "agent": "verifier",
+    "message": "fetch: jina returned 52119 chars",
+    "data": {
+      "label": "fetch",
+      "provider": "jina",
+      "result": "52119 chars",
+      "worker": "https://ntu.edu.sg/education/graduate-programme/master-of-science-in-artificial-intelligence"
+    }
+  },
+  {
+    "id": 113,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:14.511705Z",
+    "type": "log",
+    "agent": "verifier",
+    "message": "Fetched https://www.ntu.edu.sg/education/graduate-programme/master-of-science-in-artificial-intelligence via jina (15000 chars)",
+    "data": {
+      "url": "https://www.ntu.edu.sg/education/graduate-programme/master-of-science-in-artificial-intelligence",
+      "pages_read": 1,
+      "method": "jina"
+    }
+  },
+  {
+    "id": 114,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:14.526095Z",
+    "type": "tool_call",
+    "agent": "verifier",
+    "message": "llm: calling openai/deepseek-v4.1-flash",
+    "data": {
+      "label": "llm",
+      "provider": "openai/deepseek-v4.1-flash",
+      "worker": "https://ntu.edu.sg/education/graduate-programme/master-of-science-in-artificial-intelligence"
+    }
+  },
+  {
+    "id": 115,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:15.273052Z",
+    "type": "tool_result",
+    "agent": "verifier",
+    "message": "fetch: jina returned 835 chars",
+    "data": {
+      "label": "fetch",
+      "provider": "jina",
+      "result": "835 chars",
+      "worker": "https://dosje.gov.in/schemes-and-services/central-sector-scheme-of-national-overseas-scholarship"
+    }
+  },
+  {
+    "id": 116,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:15.334739Z",
+    "type": "log",
+    "agent": "verifier",
+    "message": "Fetched https://www.dosje.gov.in/schemes-and-services/central-sector-scheme-of-national-overseas-scholarship via jina (835 chars)",
+    "data": {
+      "url": "https://www.dosje.gov.in/schemes-and-services/central-sector-scheme-of-national-overseas-scholarship",
+      "pages_read": 1,
+      "method": "jina"
+    }
+  },
+  {
+    "id": 117,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:15.350086Z",
+    "type": "tool_call",
+    "agent": "verifier",
+    "message": "llm: calling openai/deepseek-v4.1-flash",
+    "data": {
+      "label": "llm",
+      "provider": "openai/deepseek-v4.1-flash",
+      "worker": "https://dosje.gov.in/schemes-and-services/central-sector-scheme-of-national-overseas-scholarship"
+    }
+  },
+  {
+    "id": 118,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:15.449334Z",
+    "type": "tool_result",
+    "agent": "verifier",
+    "message": "fetch: jina returned 15211 chars",
+    "data": {
+      "label": "fetch",
+      "provider": "jina",
+      "result": "15211 chars",
+      "worker": "https://web.cs.toronto.edu/graduate/msc"
+    }
+  },
+  {
+    "id": 119,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:15.480535Z",
+    "type": "log",
+    "agent": "verifier",
+    "message": "Fetched https://web.cs.toronto.edu/graduate/msc via jina (15000 chars)",
+    "data": {
+      "url": "https://web.cs.toronto.edu/graduate/msc",
+      "pages_read": 1,
+      "method": "jina"
+    }
+  },
+  {
+    "id": 120,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:15.494692Z",
+    "type": "tool_call",
+    "agent": "verifier",
+    "message": "llm: calling openai/deepseek-v4.1-flash",
+    "data": {
+      "label": "llm",
+      "provider": "openai/deepseek-v4.1-flash",
+      "worker": "https://web.cs.toronto.edu/graduate/msc"
+    }
+  },
+  {
+    "id": 121,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:17.657205Z",
+    "type": "tool_result",
+    "agent": "verifier",
+    "message": "fetch: jina returned 32484 chars",
+    "data": {
+      "label": "fetch",
+      "provider": "jina",
+      "result": "32484 chars",
+      "worker": "https://comp.nus.edu.sg/programmes/pg/mcomp-ai/scholarships"
+    }
+  },
+  {
+    "id": 122,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:17.672396Z",
+    "type": "log",
+    "agent": "verifier",
+    "message": "Fetched https://www.comp.nus.edu.sg/programmes/pg/mcomp-ai/scholarships via jina (15000 chars)",
+    "data": {
+      "url": "https://www.comp.nus.edu.sg/programmes/pg/mcomp-ai/scholarships",
+      "pages_read": 1,
+      "method": "jina"
+    }
+  },
+  {
+    "id": 123,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:17.678340Z",
+    "type": "tool_call",
+    "agent": "verifier",
+    "message": "llm: calling openai/deepseek-v4.1-flash",
+    "data": {
+      "label": "llm",
+      "provider": "openai/deepseek-v4.1-flash",
+      "worker": "https://comp.nus.edu.sg/programmes/pg/mcomp-ai/scholarships"
+    }
+  },
+  {
+    "id": 124,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:18.029593Z",
+    "type": "tool_result",
+    "agent": "verifier",
+    "message": "llm: openai/deepseek-v4.1-flash returned VerifierOutput",
+    "data": {
+      "label": "llm",
+      "provider": "openai/deepseek-v4.1-flash",
+      "result": "VerifierOutput",
+      "worker": "https://dosje.gov.in/schemes-and-services/central-sector-scheme-of-national-overseas-scholarship"
+    }
+  },
+  {
+    "id": 125,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:18.061043Z",
+    "type": "opportunity_rejected",
+    "agent": "verifier",
+    "message": "Rejected https://www.dosje.gov.in/schemes-and-services/central-sector-scheme-of-national-overseas-scholarship: The page could not be retrieved: it returned a 403 Forbidden error from CloudFront with no scholarship content. There is no verifiable information about eligibility, funding, deadlines or application steps, so no opportunity can be extracted.",
+    "data": {
+      "url": "https://www.dosje.gov.in/schemes-and-services/central-sector-scheme-of-national-overseas-scholarship",
+      "reason": "The page could not be retrieved: it returned a 403 Forbidden error from CloudFront with no scholarship content. There is no verifiable information about eligibility, funding, deadlines or application steps, so no opportunity can be extracted.",
+      "worker": "https://dosje.gov.in/schemes-and-services/central-sector-scheme-of-national-overseas-scholarship"
+    }
+  },
+  {
+    "id": 126,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:18.083360Z",
+    "type": "agent_finished",
+    "agent": "verifier",
+    "message": "verifier finished in 4.73s",
+    "data": {
+      "duration_sec": 4.73,
+      "updated": [
+        "rejected"
+      ],
+      "worker": "https://dosje.gov.in/schemes-and-services/central-sector-scheme-of-national-overseas-scholarship",
+      "title": "Central Sector Scheme of National Overseas Scholarship - Ministry of Social Justice and Empowerment",
+      "domain": "dosje.gov.in",
+      "counts": {
+        "rejected": 1
+      }
+    }
+  },
+  {
+    "id": 127,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:18.102854Z",
+    "type": "agent_started",
+    "agent": "verifier",
+    "message": "verifier",
+    "data": {
+      "worker": "https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database?detail=10000611",
+      "title": "DAAD Zuse School of Embedded Composite Artificial Intelligence (SECAI): Scholarships for Master&#039;s students in AI - DAAD - Deutscher Akademischer Austauschd",
+      "domain": "daad.de"
+    }
+  },
+  {
+    "id": 128,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:18.119531Z",
+    "type": "tool_call",
+    "agent": "verifier",
+    "message": "fetch: calling jina",
+    "data": {
+      "label": "fetch",
+      "provider": "jina",
+      "worker": "https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database?detail=10000611"
+    }
+  },
+  {
+    "id": 129,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:18.419587Z",
+    "type": "tool_result",
+    "agent": "verifier",
+    "message": "fetch: jina returned 32328 chars",
+    "data": {
+      "label": "fetch",
+      "provider": "jina",
+      "result": "32328 chars",
+      "worker": "https://comp.nus.edu.sg/programmes/pg/mai/scholarships"
+    }
+  },
+  {
+    "id": 130,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:18.458687Z",
+    "type": "log",
+    "agent": "verifier",
+    "message": "Fetched https://www.comp.nus.edu.sg/programmes/pg/mai/scholarships via jina (15000 chars)",
+    "data": {
+      "url": "https://www.comp.nus.edu.sg/programmes/pg/mai/scholarships",
+      "pages_read": 1,
+      "method": "jina"
+    }
+  },
+  {
+    "id": 131,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:18.464669Z",
+    "type": "tool_call",
+    "agent": "verifier",
+    "message": "llm: calling openai/deepseek-v4.1-flash",
+    "data": {
+      "label": "llm",
+      "provider": "openai/deepseek-v4.1-flash",
+      "worker": "https://comp.nus.edu.sg/programmes/pg/mai/scholarships"
+    }
+  },
+  {
+    "id": 132,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:21.522752Z",
+    "type": "tool_result",
+    "agent": "verifier",
+    "message": "llm: openai/deepseek-v4.1-flash returned VerifierOutput",
+    "data": {
+      "label": "llm",
+      "provider": "openai/deepseek-v4.1-flash",
+      "result": "VerifierOutput",
+      "worker": "https://comp.nus.edu.sg/programmes/pg/mai/scholarships"
+    }
+  },
+  {
+    "id": 133,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:21.581657Z",
+    "type": "opportunity_rejected",
+    "agent": "verifier",
+    "message": "Rejected https://www.comp.nus.edu.sg/programmes/pg/mai/scholarships: The fetched page content consists only of the NUS Computing site navigation menu, cookie notice and boilerplate links; the actual 'Fees and Scholarships' body content for the Master of Computing in Artificial Intelligence programme did not load (the text is truncated after the menu). No scholarship name, funding details, eligibility rules, deadline or application steps are present, so no opportunity can be verified without inventing information.",
+    "data": {
+      "url": "https://www.comp.nus.edu.sg/programmes/pg/mai/scholarships",
+      "reason": "The fetched page content consists only of the NUS Computing site navigation menu, cookie notice and boilerplate links; the actual 'Fees and Scholarships' body content for the Master of Computing in Artificial Intelligence programme did not load (the text is truncated after the menu). No scholarship name, funding details, eligibility rules, deadline or application steps are present, so no opportunity can be verified without inventing information.",
+      "worker": "https://comp.nus.edu.sg/programmes/pg/mai/scholarships"
+    }
+  },
+  {
+    "id": 134,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:21.611860Z",
+    "type": "agent_finished",
+    "agent": "verifier",
+    "message": "verifier finished in 8.22s",
+    "data": {
+      "duration_sec": 8.22,
+      "updated": [
+        "rejected"
+      ],
+      "worker": "https://comp.nus.edu.sg/programmes/pg/mai/scholarships",
+      "title": "Fees and Scholarships - NUS Computing",
+      "domain": "nus.edu.sg",
+      "counts": {
+        "rejected": 1
+      }
+    }
+  },
+  {
+    "id": 135,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:21.620922Z",
+    "type": "agent_started",
+    "agent": "verifier",
+    "message": "verifier",
+    "data": {
+      "worker": "https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database?detail=50026200",
+      "title": "Study Scholarships - Master Studies for All Academic Disciplines - DAAD - Deutscher Akademischer Austauschdienst",
+      "domain": "daad.de"
+    }
+  },
+  {
+    "id": 136,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:21.655176Z",
+    "type": "tool_call",
+    "agent": "verifier",
+    "message": "fetch: calling jina",
+    "data": {
+      "label": "fetch",
+      "provider": "jina",
+      "worker": "https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database?detail=50026200"
+    }
+  },
+  {
+    "id": 137,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:22.205326Z",
+    "type": "tool_result",
+    "agent": "verifier",
+    "message": "fetch: jina returned 11857 chars",
+    "data": {
+      "label": "fetch",
+      "provider": "jina",
+      "result": "11857 chars",
+      "worker": "https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database?detail=10000611"
+    }
+  },
+  {
+    "id": 138,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:22.222481Z",
+    "type": "log",
+    "agent": "verifier",
+    "message": "Fetched https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database?detail=10000611 via jina (11857 chars)",
+    "data": {
+      "url": "https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database?detail=10000611",
+      "pages_read": 1,
+      "method": "jina"
+    }
+  },
+  {
+    "id": 139,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:22.229428Z",
+    "type": "tool_call",
+    "agent": "verifier",
+    "message": "llm: calling openai/deepseek-v4.1-flash",
+    "data": {
+      "label": "llm",
+      "provider": "openai/deepseek-v4.1-flash",
+      "worker": "https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database?detail=10000611"
+    }
+  },
+  {
+    "id": 140,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:24.972101Z",
+    "type": "tool_result",
+    "agent": "verifier",
+    "message": "llm: openai/deepseek-v4.1-flash returned VerifierOutput",
+    "data": {
+      "label": "llm",
+      "provider": "openai/deepseek-v4.1-flash",
+      "result": "VerifierOutput",
+      "worker": "https://comp.nus.edu.sg/programmes/pg/mcomp-ai/scholarships"
+    }
+  },
+  {
+    "id": 141,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:25.010410Z",
+    "type": "opportunity_rejected",
+    "agent": "verifier",
+    "message": "Rejected https://www.comp.nus.edu.sg/programmes/pg/mcomp-ai/scholarships: The fetched page contains only site navigation menus, a cookie notice and boilerplate header/footer links for NUS Computing's Master of Computing in Artificial Intelligence. No scholarship, fee, funding amount, eligibility rule, deadline or application instruction is present in the retrieved text, so there is nothing that can be verified as a currently offered award without fabricating details. The page appears to be a listing/link page whose substantive body content failed to load.",
+    "data": {
+      "url": "https://www.comp.nus.edu.sg/programmes/pg/mcomp-ai/scholarships",
+      "reason": "The fetched page contains only site navigation menus, a cookie notice and boilerplate header/footer links for NUS Computing's Master of Computing in Artificial Intelligence. No scholarship, fee, funding amount, eligibility rule, deadline or application instruction is present in the retrieved text, so there is nothing that can be verified as a currently offered award without fabricating details. The page appears to be a listing/link page whose substantive body content failed to load.",
+      "worker": "https://comp.nus.edu.sg/programmes/pg/mcomp-ai/scholarships"
+    }
+  },
+  {
+    "id": 142,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:25.019258Z",
+    "type": "agent_finished",
+    "agent": "verifier",
+    "message": "verifier finished in 11.7s",
+    "data": {
+      "duration_sec": 11.7,
+      "updated": [
+        "rejected"
+      ],
+      "worker": "https://comp.nus.edu.sg/programmes/pg/mcomp-ai/scholarships",
+      "title": "Fees and Scholarships - NUS Computing",
+      "domain": "nus.edu.sg",
+      "counts": {
+        "rejected": 1
+      }
+    }
+  },
+  {
+    "id": 143,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:25.025405Z",
+    "type": "agent_started",
+    "agent": "verifier",
+    "message": "verifier",
+    "data": {
+      "worker": "https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database?detail=57742130",
+      "title": "Study scholarships for STEM disciplines - DAAD - Deutscher Akademischer Austauschdienst",
+      "domain": "daad.de"
+    }
+  },
+  {
+    "id": 144,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:25.033547Z",
+    "type": "tool_call",
+    "agent": "verifier",
+    "message": "fetch: calling jina",
+    "data": {
+      "label": "fetch",
+      "provider": "jina",
+      "worker": "https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database?detail=57742130"
+    }
+  },
+  {
+    "id": 145,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:29.600200Z",
+    "type": "tool_result",
+    "agent": "verifier",
+    "message": "fetch: jina returned 26566 chars",
+    "data": {
+      "label": "fetch",
+      "provider": "jina",
+      "result": "26566 chars",
+      "worker": "https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database?detail=57742130"
+    }
+  },
+  {
+    "id": 146,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:29.647583Z",
+    "type": "log",
+    "agent": "verifier",
+    "message": "Fetched https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database?detail=57742130 via jina (15000 chars)",
+    "data": {
+      "url": "https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database?detail=57742130",
+      "pages_read": 1,
+      "method": "jina"
+    }
+  },
+  {
+    "id": 147,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:29.661796Z",
+    "type": "tool_call",
+    "agent": "verifier",
+    "message": "llm: calling openai/deepseek-v4.1-flash",
+    "data": {
+      "label": "llm",
+      "provider": "openai/deepseek-v4.1-flash",
+      "worker": "https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database?detail=57742130"
+    }
+  },
+  {
+    "id": 153,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:35.254603Z",
+    "type": "tool_result",
+    "agent": "verifier",
+    "message": "llm: openai/deepseek-v4.1-flash returned VerifierOutput",
+    "data": {
+      "label": "llm",
+      "provider": "openai/deepseek-v4.1-flash",
+      "result": "VerifierOutput",
+      "worker": "https://ntu.edu.sg/education/graduate-programme/master-of-science-in-artificial-intelligence"
+    }
+  },
+  {
+    "id": 154,
+    "run_id": "28cec885bad4",
+    "ts": "2026-10-26T06:49:35.315495Z",
+    "type": "opportunity_verified",
+    "agent": "verifier",
+    "message": "Master of Science in Artificial Intelligence (MSAI) \u2014 unknown funding, deadline unknown, confidence 30%",
+    "data": {
+      "name": "Master of Science in Artificial Intelligence (MSAI)",
+      "url": "https://www.ntu.edu.sg/education/graduate-programme/master-of-science-in-artificial-intelligence",
+      "funding": "unknown",
+      "deadline": null,
+      "confidence": 0.3,
+      "verification": "verified_official",
+      "worker": "https://ntu.edu.sg/education/graduate-programme/master-of-science-in-artificial-intelligence"
+    }
+  }
+]
