@@ -97,6 +97,10 @@ an agent read the page. Set `KERNEL_API_KEY` in `backend/.env`.
 ScholarSwarm is hosted on **Northflank** as a single service: FastAPI serves both the API and the
 built React app. Set the same environment variables as `backend/.env` in the Northflank service.
 
+When the SPA is hosted separately (for example on Cloudflare Pages), set `CORS_ORIGINS` in the
+backend to a comma-separated list of allowed browser origins. The default includes
+`https://opportunity-agent.pages.dev`, plus the local Vite dev server origins.
+
 ---
 
 ## Quick start

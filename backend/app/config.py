@@ -87,6 +87,21 @@ class Settings(BaseSettings):
     data_dir: Path = DATA_DIR
     storage_secret: str = "change-me"
     ui_poll_seconds: float = 0.5
+    # Browser origins allowed to call the API, comma-separated.
+    cors_origins: str = (
+        "https://opportunity-agent.pages.dev,"
+        "http://localhost:5173,"
+        "http://127.0.0.1:5173"
+    )
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        """Allowed CORS origins, normalized without trailing slashes."""
+        return [
+            origin.strip().rstrip("/")
+            for origin in self.cors_origins.split(",")
+            if origin.strip()
+        ]
 
     # ---------- Swarm tunables ----------
     max_candidates_per_round: int = 15

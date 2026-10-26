@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import AsyncIterator
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -60,6 +61,14 @@ def _mount_spa(app: FastAPI) -> None:
 
 def create_app() -> FastAPI:
     app = FastAPI(title="ScholarSwarm", version="0.2.0", lifespan=lifespan)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origin_list,
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "HEAD", "OPTIONS"],
+        allow_headers=["*"],
+        max_age=600,
+    )
     app.include_router(health_router, prefix="/api")
     app.include_router(meta_router, prefix="/api")
     app.include_router(runs_router, prefix="/api")
