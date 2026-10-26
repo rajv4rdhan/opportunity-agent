@@ -156,7 +156,7 @@ function CanvasInner({ state }: { state: RunState }) {
         proOptions={{ hideAttribution: true }}
         className="rounded-[var(--radius-card)]"
       >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="var(--color-line)" />
+        <Background variant={BackgroundVariant.Dots} gap={24} size={0} color="transparent" />
         <Controls showInteractive={false} position="bottom-right" />
       </ReactFlow>
     </div>

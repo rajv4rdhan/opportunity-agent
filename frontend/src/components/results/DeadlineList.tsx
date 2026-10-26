@@ -6,7 +6,6 @@ import { icsUrl } from '@/api/client'
 import { DeadlineBadge } from '@/components/common/DeadlineBadge'
 import { Panel } from '@/components/common/Panel'
 import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
 import { daysUntil } from '@/lib/format'
 import type { FinalReport, Opportunity } from '@/api/types'
 
@@ -86,14 +85,17 @@ export function DeadlineList({ runId, report }: { runId: string; report: FinalRe
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="text-base leading-6 font-semibold">Deadlines</h3>
+        <p className="text-sm text-muted">Sorted by date. Rolling programmes are listed last.</p>
         <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2 text-xs text-muted">
-            Show expired
-            <Switch checked={showExpired} onCheckedChange={setShowExpired} aria-label="Show expired" />
-          </label>
           <Button
-            variant="outline"
+            variant={showExpired ? 'secondary' : 'ghost'}
+            aria-pressed={showExpired}
+            className="h-9 px-3 text-xs"
+            onClick={() => setShowExpired((value) => !value)}
+          >
+            {showExpired ? 'Hide expired' : `Show expired${expired.length ? ` (${expired.length})` : ''}`}
+          </Button>
+          <Button
             className="h-9 gap-1.5"
             onClick={() => {
               window.location.href = icsUrl(runId)

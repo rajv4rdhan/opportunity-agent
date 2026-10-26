@@ -58,12 +58,6 @@ const ICONS = {
   log: StickyNote,
 }
 
-const TONE_BORDER: Record<string, string> = {
-  warn: 'border-l-2 border-warn bg-warn-soft/30 pl-2',
-  err: 'border-l-2 border-err bg-err-soft/30 pl-2',
-  accent: 'border-l-2 border-accent bg-accent-soft/30 pl-2',
-}
-
 export function ActivityPanel({
   state,
   title = true,
@@ -102,7 +96,7 @@ export function ActivityPanel({
     <div className="relative h-full">
       <div
         ref={scrollRef}
-        className="ss-scroll h-full overflow-y-auto px-5 py-3"
+        className="ss-scroll h-full overflow-y-auto px-5 py-4"
         onScroll={(event) => {
           const element = event.currentTarget
           setAtBottom(element.scrollHeight - element.scrollTop - element.clientHeight <= 48)
@@ -111,10 +105,11 @@ export function ActivityPanel({
         {events.length === 0 ? (
           <p className="py-10 text-center text-sm text-muted">No activity yet.</p>
         ) : (
-          events.map((event) => (
+          events.map((event, index) => (
             <ActivityRow
               key={event.id ?? `${event.type}-${event.ts}-${event.message}`}
               event={event}
+              grouped={index > 0 && (events[index - 1].agent ?? 'run') === (event.agent ?? 'run')}
               startedAt={state.startedAt}
               expanded={expanded.has(event.id ?? -1)}
               onToggle={() => {
@@ -134,7 +129,7 @@ export function ActivityPanel({
         <button
           type="button"
           onClick={resetScroll}
-          className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full border border-line bg-surface px-2.5 py-1 text-xs text-muted shadow-card"
+          className="absolute bottom-3 left-1/2 h-8 -translate-x-1/2 rounded-full bg-accent px-3 text-xs font-medium text-on-accent shadow-[var(--shadow-lift)]"
         >
           Jump to latest
         </button>
@@ -154,10 +149,10 @@ export function ActivityPanel({
         }}
         className="h-8"
       >
-        <ToggleGroupItem value="important" className="h-7 px-2 text-xs">
+        <ToggleGroupItem value="important" className="h-8 px-2.5 text-xs">
           Important
         </ToggleGroupItem>
-        <ToggleGroupItem value="all" className="h-7 px-2 text-xs">
+        <ToggleGroupItem value="all" className="h-8 px-2.5 text-xs">
           All
         </ToggleGroupItem>
       </ToggleGroup>
@@ -185,7 +180,8 @@ export function ActivityPanel({
 
   return (
     <Panel
-      title={title ? 'Activity' : undefined}
+      title={title ? 'Agent transcript' : undefined}
+      subtitle={title ? 'What each agent did, as it happened' : undefined}
       actions={title ? controls : undefined}
       flush
       className="overflow-hidden"
@@ -202,74 +198,87 @@ export function ActivityPanel({
   )
 }
 
+const BUBBLE: Record<string, string> = {
+  warn: 'bg-warn-soft text-ink',
+  err: 'bg-err-soft text-ink',
+  decision: 'bg-accent-soft text-ink',
+  ok: 'bg-ok-soft text-ink',
+}
+
 function ActivityRow({
   event,
+  grouped,
   startedAt,
   expanded,
   onToggle,
 }: {
   event: Event
+  grouped: boolean
   startedAt: string | null
   expanded: boolean
   onToggle: () => void
 }) {
-  const Icon = ICONS[event.type as keyof typeof ICONS] ?? Circle
+  const meta = AGENT_BY_ID[event.agent ?? '']
+  const AgentIcon = meta?.icon ?? (ICONS[event.type as keyof typeof ICONS] ?? Circle)
   const tone = eventTone(event)
   const time = startedAt
     ? Math.max(0, Math.floor((Date.parse(event.ts) - Date.parse(startedAt)) / 1000))
     : 0
-  const agent = AGENT_BY_ID[event.agent ?? '']?.label ?? (event.agent ? event.agent.replaceAll('_', ' ') : 'Run')
+  const agent = meta?.label ?? (event.agent ? event.agent.replaceAll('_', ' ') : 'Run')
   const url = typeof event.data?.url === 'string' ? event.data.url : undefined
+  const bubble =
+    event.type === 'decision'
+      ? BUBBLE.decision
+      : tone === 'warn'
+        ? BUBBLE.warn
+        : tone === 'err'
+          ? BUBBLE.err
+          : event.type === 'opportunity_verified'
+            ? BUBBLE.ok
+            : undefined
 
   return (
-    <div
-      className={cn(
-        'grid grid-cols-[44px_20px_1fr] gap-2 border-b border-line/60 py-2',
-        TONE_BORDER[tone ?? ''] ?? '',
-      )}
-    >
-      <span className="font-mono text-[11px] leading-6 text-muted tabular-nums">
-        {String(Math.floor(time / 60)).padStart(2, '0')}:{String(time % 60).padStart(2, '0')}
-      </span>
-      <span
-        className={cn(
-          'mt-1 flex size-5 items-center justify-center rounded-full bg-subtle',
-          tone === 'warn' && 'bg-warn-soft text-warn',
-          tone === 'err' && 'bg-err-soft text-err',
-          tone === 'accent' && 'bg-accent-soft text-accent',
-          tone === 'ok' && 'bg-ok-soft text-ok',
-          !tone && 'text-muted',
-        )}
-      >
-        <Icon className="size-3" strokeWidth={1.75} />
-      </span>
-      <div className="min-w-0">
-        <p className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold">{agent}</span>
-          <span className="text-[11px] tracking-wide text-muted uppercase">
-            {event.type.replaceAll('_', ' ')}
-          </span>
-        </p>
-        <button
-          type="button"
-          onClick={onToggle}
+    <div className={cn('ss-rise grid grid-cols-[32px_minmax(0,1fr)] gap-3', grouped ? 'pt-1.5' : 'pt-4 first:pt-0')}>
+      {grouped ? (
+        <span aria-hidden="true" />
+      ) : (
+        <span
           className={cn(
-            'mt-0.5 w-full text-left text-[13px] leading-5',
-            !expanded && 'line-clamp-2',
+            'flex size-8 items-center justify-center rounded-[8px]',
+            meta ? 'bg-accent text-on-accent' : 'bg-subtle text-muted',
           )}
         >
-          {event.message}
-        </button>
-        {url ? (
-          <a
-            href={url}
-            target="_blank"
-            rel="noreferrer"
-            className="block truncate text-xs text-accent"
+          <AgentIcon className="size-4" strokeWidth={1.75} />
+        </span>
+      )}
+      <div className="min-w-0">
+        {grouped ? null : (
+          <p className="flex items-baseline justify-between gap-2">
+            <span className="truncate text-[13px] font-semibold" title={agent}>
+              {agent}
+            </span>
+            <span className="shrink-0 font-mono text-[11px] text-muted tabular-nums">
+              {String(Math.floor(time / 60)).padStart(2, '0')}:{String(time % 60).padStart(2, '0')}
+            </span>
+          </p>
+        )}
+        <div className={cn('mt-1', bubble && 'rounded-[10px] px-3 py-2', bubble)}>
+          <p className="font-mono text-[10px] tracking-[0.1em] text-muted uppercase">
+            {event.type.replaceAll('_', ' ')}
+          </p>
+          <p
+            onClick={onToggle}
+            title={expanded ? undefined : event.message}
+            className={cn('w-full cursor-text text-left text-[13px] leading-5', !expanded && 'line-clamp-3', !bubble && 'text-ink/85')}
           >
-            {url}
-          </a>
-        ) : null}
+            {event.message}
+          </p>
+          {url ? (
+            <a href={url} target="_blank" rel="noreferrer" className="mt-0.5 block truncate text-xs text-accent">
+              {url}
+            </a>
+          ) : null}
+        </div>
       </div>
     </div>
   )

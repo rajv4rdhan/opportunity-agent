@@ -152,14 +152,18 @@ export async function expectContainersAligned(page: Page): Promise<void> {
 }
 
 export async function expectCenteredHome(page: Page): Promise<void> {
+  // Split hero: the composer sits inside the shared container and the headline
+  // starts on the container's content edge.
   const composer = await page.locator('[data-testid=composer]').boundingBox()
-  const viewport = page.viewportSize()
+  const container = await page.locator('main [data-testid=container]').first().boundingBox()
+  const heading = await page.locator('h1').boundingBox()
   expect(composer, 'composer must be visible').not.toBeNull()
-  if (!composer || !viewport) return
-  const center = composer.x + composer.width / 2
-  expect(Math.abs(center - viewport.width / 2), 'composer must be centered').toBeLessThanOrEqual(2)
-  const align = await page.locator('h1').evaluate((element) => getComputedStyle(element).textAlign)
-  expect(align).toBe('center')
+  if (!composer || !container || !heading) return
+  expect(composer.x, 'composer inside container').toBeGreaterThanOrEqual(container.x - 1)
+  expect(composer.x + composer.width, 'composer inside container').toBeLessThanOrEqual(
+    container.x + container.width + 1,
+  )
+  expect(Math.abs(heading.x - composer.x), 'headline and composer share a left edge').toBeLessThanOrEqual(1)
 }
 
 export async function expectEqualRows(page: Page): Promise<void> {
@@ -235,6 +239,8 @@ export async function expectNoClippedText(page: Page): Promise<void> {
     for (const element of Array.from(document.querySelectorAll(selector))) {
       const html = element as HTMLElement
       if (!html.offsetParent && html.getClientRects().length === 0) continue
+      // Icon-only controls (switches, icon buttons) have no text that can clip.
+      if (!(html.textContent ?? '').trim()) continue
       if (html.scrollWidth <= html.clientWidth + 1) continue
       const truncated =
         html.className.includes('truncate') && Boolean(html.getAttribute('title'))

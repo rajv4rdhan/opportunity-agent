@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router'
-import { Play } from 'lucide-react'
+import { Play, Plus } from 'lucide-react'
 
 import { useRuns } from '@/api/queries'
 import type { RunSummary } from '@/api/types'
@@ -8,14 +8,6 @@ import { Panel } from '@/components/common/Panel'
 import { StatusPill } from '@/components/common/StatusPill'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Container } from '@/components/layout/Container'
 import { PageHeader } from '@/components/layout/PageHeader'
@@ -24,7 +16,7 @@ import { useDocumentTitle } from '@/lib/useDocumentTitle'
 
 function Avatar({ name }: { name: string | null | undefined }) {
   return (
-    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent">
+    <span className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-accent text-sm font-semibold text-on-accent">
       {initials(name)}
     </span>
   )
@@ -54,7 +46,7 @@ export function HistoryPage() {
     <Container>
       <PageHeader
         title="History"
-        subtitle="Every search you ran, with a replay."
+        subtitle="Every dossier you've built. Open one, or replay how the swarm made it."
         actions={
           <Button className="h-9" onClick={() => navigate('/')}>
             New search
@@ -95,114 +87,72 @@ export function HistoryPage() {
           />
         </Panel>
       ) : (
-        <>
-          <div className="flex flex-col gap-3 sm:hidden">
-            {runs.data.map((run) => (
-              <article
-                key={run.id}
-                data-testid="history-card"
-                onClick={() => navigate(`/runs/${run.id}`)}
-                className="cursor-pointer rounded-[var(--radius-card)] border border-line bg-surface p-4 text-left shadow-card"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <Avatar name={run.student_name} />
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{run.student_name || '—'}</p>
-                      <p className="font-mono text-[11px] text-muted">{run.id.slice(0, 8)}</p>
-                    </div>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="group flex min-h-[208px] flex-col items-center justify-center gap-3 rounded-[var(--radius-card)] border-2 border-dashed border-accent/35 text-accent transition-colors hover:border-accent hover:bg-accent-soft"
+          >
+            <span className="flex size-12 items-center justify-center rounded-full bg-accent text-on-accent transition-transform duration-300 group-hover:rotate-90">
+              <Plus className="size-5" strokeWidth={2} />
+            </span>
+            <span className="text-sm font-semibold">Start a new search</span>
+          </button>
+          {runs.data.map((run, index) => (
+            <article
+              key={run.id}
+              data-testid="history-card"
+              onClick={() => navigate(`/runs/${run.id}`)}
+              className="ss-rise group flex min-h-[208px] cursor-pointer flex-col overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface shadow-card transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-[var(--shadow-lift)]"
+              style={{ ['--i' as string]: index + 1 }}
+            >
+              <div className="flex items-start justify-between gap-3 p-5">
+                <div className="flex min-w-0 items-center gap-3">
+                  <Avatar name={run.student_name} />
+                  <div className="min-w-0">
+                    <p className="truncate text-[15px] font-semibold" title={run.student_name || ''}>
+                      {run.student_name || 'Unnamed student'}
+                    </p>
+                    <p className="font-mono text-[11px] text-muted">{run.id.slice(0, 8)}</p>
                   </div>
-                  <StatusPill status={run.status} />
                 </div>
-                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
-                  <span>{formatRelative(run.created_at)}</span>
-                  <span className="font-mono tabular-nums">{formatDuration(run.duration_sec)}</span>
-                  <span>{run.verified_count ?? 0} verified</span>
-                  {canReplay(run) ? (
-                    <Button
-                      variant="ghost"
-                      className="ml-auto h-8 gap-1 px-2 text-xs text-accent"
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        navigate(`/runs/${run.id}?replay=1&speed=20`)
-                      }}
-                    >
-                      <Play className="size-3" strokeWidth={1.75} />
-                      Replay
-                    </Button>
-                  ) : null}
+                <StatusPill status={run.status} />
+              </div>
+              <dl className="mt-auto grid grid-cols-3 border-t border-line">
+                <div className="px-5 py-3">
+                  <dt className="font-mono text-[10px] tracking-[0.12em] text-muted uppercase">Verified</dt>
+                  <dd className="text-[22px] leading-7 font-semibold text-accent tabular-nums">{run.verified_count ?? 0}</dd>
                 </div>
-              </article>
-            ))}
-          </div>
-
-          <Panel flush className="hidden overflow-hidden sm:block">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Student</TableHead>
-                  <TableHead>Started</TableHead>
-                  <TableHead>Duration</TableHead>
-                  <TableHead>Verified</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {runs.data.map((run) => (
-                  <TableRow
-                    key={run.id}
-                    className="cursor-pointer"
-                    onClick={() => navigate(`/runs/${run.id}`)}
+                <div className="border-l border-line px-5 py-3">
+                  <dt className="font-mono text-[10px] tracking-[0.12em] text-muted uppercase">Time</dt>
+                  <dd className="font-mono text-sm leading-7 tabular-nums">{formatDuration(run.duration_sec)}</dd>
+                </div>
+                <div className="border-l border-line px-5 py-3">
+                  <dt className="font-mono text-[10px] tracking-[0.12em] text-muted uppercase">Started</dt>
+                  <dd className="leading-7">
+                    <Started value={run.created_at} />
+                  </dd>
+                </div>
+              </dl>
+              <div className="flex items-center justify-between border-t border-line bg-canvas/60 px-5 py-2">
+                <span className="text-xs font-medium text-accent group-hover:underline">Open dossier →</span>
+                {canReplay(run) ? (
+                  <Button
+                    variant="ghost"
+                    className="h-8 gap-1 px-2 text-xs text-accent hover:bg-accent-soft hover:text-accent"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      navigate(`/runs/${run.id}?replay=1&speed=20`)
+                    }}
                   >
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Avatar name={run.student_name} />
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium">{run.student_name || '—'}</p>
-                          <p className="font-mono text-[11px] text-muted">{run.id.slice(0, 8)}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Started value={run.created_at} />
-                    </TableCell>
-                    <TableCell className="font-mono text-xs tabular-nums">
-                      {formatDuration(run.duration_sec)}
-                    </TableCell>
-                    <TableCell className="text-sm tabular-nums">{run.verified_count ?? 0}</TableCell>
-                    <TableCell>
-                      <StatusPill status={run.status} />
-                    </TableCell>
-                    <TableCell>
-                      <div
-                        className="flex justify-end gap-1"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        <Button
-                          variant="ghost"
-                          className="h-8 px-2 text-xs"
-                          onClick={() => navigate(`/runs/${run.id}`)}
-                        >
-                          Open
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          className="h-8 gap-1 px-2 text-xs"
-                          disabled={!canReplay(run)}
-                          onClick={() => navigate(`/runs/${run.id}?replay=1&speed=20`)}
-                        >
-                          <Play className="size-3" strokeWidth={1.75} />
-                          Replay
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Panel>
-        </>
+                    <Play className="size-3" strokeWidth={2} />
+                    Replay
+                  </Button>
+                ) : null}
+              </div>
+            </article>
+          ))}
+        </div>
       )}
     </Container>
   )

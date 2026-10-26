@@ -68,7 +68,7 @@ test('finished layout invariants', async ({ page }) => {
     await expectTapTargets(page)
   }
 
-  await page.getByRole('tab', { name: 'SOP' }).click()
+  await page.getByRole('link', { name: 'SOP' }).click()
   await page.waitForTimeout(300)
   await expectNoHorizontalScroll(page)
   await expectNoClippedText(page)

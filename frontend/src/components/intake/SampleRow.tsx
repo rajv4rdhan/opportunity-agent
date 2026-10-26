@@ -14,22 +14,22 @@ export function SampleRow({
   onAdvanced: () => void
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
       <span className="text-muted">Try a sample:</span>
-      <div className="flex flex-wrap items-center justify-center gap-1">
+      <div className="flex flex-wrap items-center gap-1">
         {samples.map((sample) => (
           <Button
             key={sample.name}
             type="button"
             variant="ghost"
-            className="h-8 px-2 text-sm text-ink hover:bg-subtle"
+            className="h-8 rounded-[8px] px-2.5 text-sm font-medium text-accent hover:bg-accent-soft hover:text-accent"
             onClick={() => onPick(sample)}
           >
             {sample.label}
           </Button>
         ))}
       </div>
-      <Separator orientation="vertical" className="h-4" />
+      <Separator orientation="vertical" className="hidden h-4 sm:block" />
       <Button
         type="button"
         variant="ghost"

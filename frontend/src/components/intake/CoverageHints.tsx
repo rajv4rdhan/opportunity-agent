@@ -31,24 +31,25 @@ export function CoverageHints({
   }, [text])
 
   return (
-    <div className={cn('flex flex-wrap justify-center gap-2', className)} aria-live="polite">
+    <div className={cn('flex flex-wrap items-center gap-1.5', className)} aria-live="polite">
+      <span className="mr-1 text-[11px] font-semibold tracking-[0.08em] text-muted uppercase">We picked up</span>
       {HINTS.map(({ key, label }) => {
         const covered = result[key]
         return (
           <span
-            key={key}
+            key={`${key}-${covered ? 'on' : 'off'}`}
             data-testid="coverage-hint"
             className={cn(
-              'inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-xs',
+              'inline-flex h-6 items-center gap-1 rounded-[6px] border px-2 text-xs transition-colors',
               covered
-                ? 'border-ok/30 bg-ok-soft text-ok'
-                : 'border-line text-muted',
+                ? 'animate-in zoom-in-90 border-accent bg-accent text-on-accent duration-200'
+                : 'border-line bg-surface text-muted',
             )}
           >
             {covered ? (
               <Check className="size-3" strokeWidth={2} />
             ) : (
-              <span className="size-1.5 rounded-full bg-line-strong" aria-hidden="true" />
+              <span className="size-1 rounded-full bg-line-strong" aria-hidden="true" />
             )}
             {label}
             {!covered && hasFiles ? (

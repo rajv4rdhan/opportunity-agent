@@ -4,7 +4,6 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
 import { DeadlineBadge, DeadlineText } from '@/components/common/DeadlineBadge'
-import { ScoreRing } from '@/components/common/ScoreRing'
 import { SourceChip } from '@/components/common/SourceChip'
 import { StatusPill } from '@/components/common/StatusPill'
 import { Button } from '@/components/ui/button'
@@ -36,13 +35,24 @@ export function MatchCard({ match }: { match: TopMatch }) {
   return (
     <article
       data-testid="match-card"
-      className="rounded-[var(--radius-card)] border border-line bg-surface p-6 shadow-card"
+      className="ss-rise rounded-[var(--radius-card)] border border-line bg-surface p-5 shadow-card transition-[border-color,box-shadow] duration-300 hover:border-accent/50 hover:shadow-[var(--shadow-lift)] sm:p-6"
+      style={{ ['--i' as string]: match.rank - 1 }}
     >
-      <div className="grid grid-cols-[40px_minmax(0,1fr)_72px] gap-x-4 sm:grid-cols-[56px_minmax(0,1fr)_120px]">
-        <p className="text-2xl leading-8 font-semibold text-muted tabular-nums">
+      <div className="grid grid-cols-[44px_minmax(0,1fr)_76px] gap-x-4 sm:grid-cols-[56px_minmax(0,1fr)_132px]">
+        <p
+          className={
+            match.rank === 1
+              ? 'flex size-11 items-center justify-center rounded-[10px] bg-accent font-mono text-lg font-semibold text-on-accent sm:size-14 sm:text-[22px]'
+              : 'flex size-11 items-center justify-center rounded-[10px] border border-accent/30 font-mono text-lg font-semibold text-accent sm:size-14 sm:text-[22px]'
+          }
+          aria-label={`Rank ${match.rank}`}
+        >
           {String(match.rank).padStart(2, '0')}
         </p>
-        <div className="min-w-0">
+        <div className="min-w-0 self-center">
+          {match.rank === 1 ? (
+            <p className="mb-1 font-mono text-[10px] tracking-[0.14em] text-accent uppercase">Best match</p>
+          ) : null}
           <h3
             className="line-clamp-2 text-lg leading-6 font-semibold sm:truncate"
             title={opportunity.name}
@@ -53,13 +63,13 @@ export function MatchCard({ match }: { match: TopMatch }) {
             {opportunity.provider_org} · {opportunity.country || '—'}
           </p>
         </div>
-        <div className="row-span-1 flex justify-end">
-          <ScoreRing score={opportunity.score} />
+        <div className="flex justify-end self-start">
+          <ScoreMeter score={opportunity.score} />
         </div>
 
-        <div className="col-span-3 mt-4 grid grid-cols-2 divide-x divide-y divide-line rounded-[10px] border border-line bg-subtle/50 sm:grid-cols-4 sm:divide-y-0">
+        <div className="col-span-3 mt-5 grid grid-cols-2 divide-x divide-y divide-line border-y border-line sm:grid-cols-4 sm:divide-y-0">
           <div className="min-w-0 px-4 py-3">
-            <p className="text-[11px] leading-4 font-semibold tracking-[0.08em] text-muted uppercase">
+            <p className="font-mono text-[10px] leading-4 tracking-[0.12em] text-muted uppercase">
               Funding
             </p>
             <p className="truncate text-sm font-medium capitalize">
@@ -72,7 +82,7 @@ export function MatchCard({ match }: { match: TopMatch }) {
             ) : null}
           </div>
           <div className="min-w-0 px-4 py-3">
-            <p className="text-[11px] leading-4 font-semibold tracking-[0.08em] text-muted uppercase">
+            <p className="font-mono text-[10px] leading-4 tracking-[0.12em] text-muted uppercase">
               Deadline
             </p>
             <div className="flex flex-wrap items-center gap-1.5">
@@ -86,13 +96,13 @@ export function MatchCard({ match }: { match: TopMatch }) {
             ) : null}
           </div>
           <div className="min-w-0 px-4 py-3">
-            <p className="text-[11px] leading-4 font-semibold tracking-[0.08em] text-muted uppercase">
+            <p className="font-mono text-[10px] leading-4 tracking-[0.12em] text-muted uppercase">
               Eligibility
             </p>
             <StatusPill status={opportunity.eligibility} />
           </div>
           <div className="min-w-0 px-4 py-3">
-            <p className="text-[11px] leading-4 font-semibold tracking-[0.08em] text-muted uppercase">
+            <p className="font-mono text-[10px] leading-4 tracking-[0.12em] text-muted uppercase">
               Source
             </p>
             <StatusPill status={opportunity.verification} />
@@ -101,7 +111,7 @@ export function MatchCard({ match }: { match: TopMatch }) {
 
         {why ? (
           <div className="col-span-3 mt-4">
-            <p className="text-[11px] leading-4 font-semibold tracking-[0.08em] text-muted uppercase">
+            <p className="font-mono text-[10px] leading-4 tracking-[0.12em] text-muted uppercase">
               Why you
             </p>
             <div
@@ -133,8 +143,14 @@ export function MatchCard({ match }: { match: TopMatch }) {
         ) : null}
 
         {opportunity.missing?.length ? (
-          <p className="col-span-3 mt-2 text-xs leading-[18px] text-warn">
-            Missing: {opportunity.missing.join('; ')}
+          <p
+            className="col-span-3 mt-3 flex min-w-0 items-center gap-2 rounded-[8px] bg-warn-soft px-3 py-2 text-xs text-warn"
+            title={opportunity.missing.join('; ')}
+          >
+            <span className="shrink-0 font-semibold">
+              {opportunity.missing.length} gap{opportunity.missing.length > 1 ? 's' : ''}
+            </span>
+            <span className="truncate">{opportunity.missing[0]}</span>
           </p>
         ) : null}
 
@@ -157,7 +173,7 @@ export function MatchCard({ match }: { match: TopMatch }) {
             />
           </div>
           {applyUrl ? (
-            <Button asChild className="h-9">
+            <Button asChild className="h-10 gap-1.5 rounded-[10px] px-5 font-semibold">
               <a href={applyUrl} target="_blank" rel="noreferrer">
                 Apply <ExternalLink className="size-3.5" strokeWidth={1.75} />
               </a>
@@ -184,7 +200,7 @@ export function MatchCard({ match }: { match: TopMatch }) {
             )}
             {opportunity.required_documents?.length ? (
               <div className="mt-3">
-                <p className="text-[11px] leading-4 font-semibold tracking-[0.08em] text-muted uppercase">
+                <p className="font-mono text-[10px] leading-4 tracking-[0.12em] text-muted uppercase">
                   Documents
                 </p>
                 <p className="text-sm">{opportunity.required_documents.join(' · ')}</p>
@@ -229,5 +245,29 @@ function SectionToggle({
       <ChevronDown className={open ? 'size-3.5 rotate-180' : 'size-3.5'} strokeWidth={1.75} />
       {label}
     </button>
+  )
+}
+
+/** Score as a number plus a ten-tick meter (no ring, no gradient). */
+function ScoreMeter({ score }: { score: number }) {
+  const value = Math.max(0, Math.min(100, Math.round(score)))
+  const filled = Math.round(value / 10)
+  return (
+    <div className="flex flex-col items-end" aria-label={`${value}% match`} role="img">
+      <p className="text-[30px] leading-none font-semibold tracking-[-0.03em] text-accent tabular-nums sm:text-[34px]">
+        {value}
+        <span className="ml-0.5 text-sm font-medium text-muted">%</span>
+      </p>
+      <div className="mt-2 flex gap-[3px]" aria-hidden="true">
+        {Array.from({ length: 10 }).map((_, index) => (
+          <span
+            key={index}
+            className={index < filled ? 'h-3 w-[4px] rounded-[1px] bg-accent sm:w-[6px]' : 'h-3 w-[4px] rounded-[1px] bg-line sm:w-[6px]'}
+            style={{ animation: `ss-fade 0.3s ease ${0.15 + index * 0.04}s both` }}
+          />
+        ))}
+      </div>
+      <p className="mt-1 font-mono text-[10px] tracking-[0.12em] text-muted uppercase">match</p>
+    </div>
   )
 }

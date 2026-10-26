@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ArrowDown, ArrowUp, ArrowUpDown, ExternalLink, Search } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, Search, ShieldCheck } from 'lucide-react'
 
 import { DeadlineBadge } from '@/components/common/DeadlineBadge'
 import { Panel } from '@/components/common/Panel'
@@ -10,7 +10,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -102,16 +101,16 @@ export function OpportunityTable({ report }: { report: FinalReport }) {
           }}
           className="h-8"
         >
-          <ToggleGroupItem value="all" className="h-7 px-2 text-xs">
+          <ToggleGroupItem value="all" className="h-8 px-2.5 text-xs">
             All
           </ToggleGroupItem>
-          <ToggleGroupItem value="eligible" className="h-7 px-2 text-xs">
+          <ToggleGroupItem value="eligible" className="h-8 px-2.5 text-xs">
             Eligible
           </ToggleGroupItem>
-          <ToggleGroupItem value="partial" className="h-7 px-2 text-xs">
+          <ToggleGroupItem value="partial" className="h-8 px-2.5 text-xs">
             Partial
           </ToggleGroupItem>
-          <ToggleGroupItem value="not_eligible" className="h-7 px-2 text-xs">
+          <ToggleGroupItem value="not_eligible" className="h-8 px-2.5 text-xs">
             Not eligible
           </ToggleGroupItem>
         </ToggleGroup>
@@ -143,16 +142,17 @@ export function OpportunityTable({ report }: { report: FinalReport }) {
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 sm:hidden">
+      <div className="flex flex-col gap-2 xl:hidden">
         {rows.map((item) => (
           <div
             key={item.id || item.name}
+            data-testid="panel"
             className="rounded-[var(--radius-card)] border border-line bg-surface p-4 shadow-card"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="font-medium">{item.name}</p>
-                <p className="text-xs text-muted">{item.provider_org}</p>
+                <p className="font-medium break-words">{item.name}</p>
+                <p className="text-xs break-words text-muted">{item.provider_org}</p>
               </div>
               <span className="shrink-0 text-sm font-semibold tabular-nums">
                 {Math.round(item.score)}
@@ -165,20 +165,21 @@ export function OpportunityTable({ report }: { report: FinalReport }) {
               </span>
               <DeadlineBadge deadline={item.deadline} />
               <StatusPill status={item.eligibility} />
+              <StatusPill status={item.verification} />
             </div>
           </div>
         ))}
       </div>
 
-      <Panel flush className="hidden overflow-hidden sm:block">
+      <Panel flush className="hidden overflow-hidden xl:block">
         <div className="overflow-x-auto">
-          <Table className="min-w-[880px]">
+          <Table className="table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-[260px]">Opportunity</TableHead>
-                <TableHead>Country</TableHead>
-                <TableHead>Funding</TableHead>
-                <TableHead>
+                <TableHead className="w-[38%]">Opportunity</TableHead>
+                <TableHead className="w-[11%]">Country</TableHead>
+                <TableHead className="w-[10%]">Funding</TableHead>
+                <TableHead className="w-[14%]">
                   <button
                     type="button"
                     onClick={() => toggleSort('deadline')}
@@ -187,8 +188,8 @@ export function OpportunityTable({ report }: { report: FinalReport }) {
                     Deadline {sortIcon('deadline')}
                   </button>
                 </TableHead>
-                <TableHead>Eligibility</TableHead>
-                <TableHead>
+                <TableHead className="w-[14%]">Eligibility</TableHead>
+                <TableHead className="w-[13%]">
                   <button
                     type="button"
                     onClick={() => toggleSort('score')}
@@ -197,8 +198,7 @@ export function OpportunityTable({ report }: { report: FinalReport }) {
                     Score {sortIcon('score')}
                   </button>
                 </TableHead>
-                <TableHead>Verification</TableHead>
-                <TableHead className="w-10" />
+
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -207,7 +207,7 @@ export function OpportunityTable({ report }: { report: FinalReport }) {
               ))}
               {rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="py-8 text-center text-sm text-muted">
+                  <TableCell colSpan={6} className="py-8 text-center text-sm text-muted">
                     No opportunities match these filters.
                   </TableCell>
                 </TableRow>
@@ -254,12 +254,35 @@ export function OpportunityTable({ report }: { report: FinalReport }) {
 function OpportunityRow({ opportunity }: { opportunity: Opportunity }) {
   return (
     <TableRow>
-      <TableCell>
-        <p className="font-medium">{opportunity.name}</p>
-        <p className="text-xs text-muted">{opportunity.provider_org}</p>
+      <TableCell className="whitespace-normal">
+        <div className="flex min-w-0 items-start gap-2">
+          <span className="min-w-0">
+            {opportunity.official_url ? (
+              <a
+                href={opportunity.official_url}
+                target="_blank"
+                rel="noreferrer"
+                className="line-clamp-2 font-medium hover:text-accent hover:underline"
+                title={opportunity.name}
+              >
+                {opportunity.name}
+              </a>
+            ) : (
+              <span className="line-clamp-2 font-medium" title={opportunity.name}>
+                {opportunity.name}
+              </span>
+            )}
+            <span className="block truncate text-xs text-muted" title={opportunity.provider_org}>
+              {opportunity.provider_org}
+            </span>
+          </span>
+          {opportunity.verification === 'verified_official' ? (
+            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-accent" strokeWidth={1.75} aria-label="Official page" />
+          ) : null}
+        </div>
       </TableCell>
-      <TableCell className="text-sm">{opportunity.country || '—'}</TableCell>
-      <TableCell className="text-sm capitalize">{fundingLabel(opportunity.funding_type)}</TableCell>
+      <TableCell className="truncate text-sm" title={opportunity.country || ''}>{opportunity.country || '—'}</TableCell>
+      <TableCell className="truncate text-sm capitalize">{fundingLabel(opportunity.funding_type)}</TableCell>
       <TableCell>
         <div className="flex flex-col gap-1">
           <span className="text-sm tabular-nums">{formatDate(opportunity.deadline, 'd MMM yyyy')}</span>
@@ -272,25 +295,13 @@ function OpportunityRow({ opportunity }: { opportunity: Opportunity }) {
       <TableCell>
         <div className="flex items-center gap-2">
           <span className="text-sm tabular-nums">{Math.round(opportunity.score)}</span>
-          <span className="h-1.5 w-12 overflow-hidden rounded-full bg-subtle">
+          <span className="h-1.5 w-10 overflow-hidden rounded-full bg-subtle">
             <span
               className="block h-full rounded-full bg-accent"
               style={{ width: `${Math.min(100, opportunity.score)}%` }}
             />
           </span>
         </div>
-      </TableCell>
-      <TableCell>
-        <StatusPill status={opportunity.verification} />
-      </TableCell>
-      <TableCell>
-        {opportunity.official_url ? (
-          <Button asChild variant="ghost" size="icon-sm" aria-label="Open official page">
-            <a href={opportunity.official_url} target="_blank" rel="noreferrer">
-              <ExternalLink className="size-3.5" strokeWidth={1.75} />
-            </a>
-          </Button>
-        ) : null}
       </TableCell>
     </TableRow>
   )

@@ -33,10 +33,12 @@ export function Panel({
       )}
     >
       {title ? (
-        <header className="flex items-start justify-between gap-4 border-b border-line px-5 pt-4 pb-3">
-          <div className="min-w-0">
+        <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 border-b border-line px-5 pt-4 pb-3">
+          <div className="min-w-[180px] flex-1">
             {typeof title === 'string' ? (
-              <h2 className="truncate text-base leading-6 font-semibold">{title}</h2>
+              <h2 className="truncate text-base leading-6 font-semibold" title={title}>
+                {title}
+              </h2>
             ) : (
               title
             )}

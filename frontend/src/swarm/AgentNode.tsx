@@ -23,27 +23,28 @@ const STATUS_ICON: Record<string, ComponentType<{ className?: string; strokeWidt
   idle: Circle,
 }
 
+// Blue/white states: running fills solid blue; done keeps a blue bar and check.
 const NODE_STATE: Record<string, string> = {
-  idle: 'border-line',
-  running: 'border-accent ring-4 ring-accent/10 animate-[ss-pulse_1.6s_ease-in-out_infinite]',
-  done: 'border-line',
-  failed: 'border-err/50',
-  waiting: 'border-warn ring-4 ring-warn/10',
-  skipped: 'border-dashed opacity-60',
+  idle: 'border-line bg-surface text-ink',
+  running: 'border-accent bg-accent text-on-accent shadow-[0_10px_24px_-10px_var(--color-accent)] animate-[ss-pulse_1.6s_ease-in-out_infinite]',
+  done: 'border-accent/45 bg-surface text-ink shadow-[inset_3px_0_0_var(--color-accent)]',
+  failed: 'border-err bg-err-soft text-ink',
+  waiting: 'border-warn bg-warn-soft text-ink ring-4 ring-warn/15',
+  skipped: 'border-dashed border-line-strong bg-surface text-ink opacity-55',
 }
 
 const TILE_STATE: Record<string, string> = {
   idle: 'bg-subtle text-muted',
-  running: 'bg-accent-soft text-accent',
-  done: 'bg-ok-soft text-ok',
-  failed: 'bg-err-soft text-err',
-  waiting: 'bg-warn-soft text-warn',
+  running: 'bg-white/15 text-on-accent',
+  done: 'bg-accent-soft text-accent',
+  failed: 'bg-surface text-err',
+  waiting: 'bg-surface text-warn',
   skipped: 'bg-subtle text-muted',
 }
 
 const STATUS_COLOR: Record<string, string> = {
-  running: 'text-accent',
-  done: 'text-ok',
+  running: 'text-on-accent',
+  done: 'text-accent',
   failed: 'text-err',
   waiting: 'text-warn',
   skipped: 'text-muted',
@@ -73,7 +74,7 @@ export function AgentNode({ data }: NodeProps<AgentFlowNode>) {
           data-testid="agent-node"
           data-status={status}
           className={cn(
-            'flex h-[76px] w-[210px] flex-col justify-center gap-1 rounded-[10px] border bg-surface px-3 py-2.5',
+            'flex h-[76px] w-[210px] flex-col justify-center gap-1 rounded-[10px] border px-3 py-2.5 transition-[background-color,border-color,box-shadow,color] duration-500',
             NODE_STATE[status] ?? NODE_STATE.idle,
           )}
         >
@@ -112,7 +113,10 @@ export function AgentNode({ data }: NodeProps<AgentFlowNode>) {
             />
           </div>
           <p
-            className="truncate pl-10 text-xs leading-[16px] text-muted"
+            className={cn(
+              'truncate pl-10 text-xs leading-[16px]',
+              status === 'running' ? 'text-on-accent/80' : 'text-muted',
+            )}
             title={thought || agent.role}
           >
             {thought || agent.role}

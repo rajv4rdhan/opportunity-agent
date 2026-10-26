@@ -1,12 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import { Lock, Quote, ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { useCreateRun, useMeta } from '@/api/queries'
 import { Composer, type ComposerValue } from '@/components/intake/Composer'
-import { CoverageHints } from '@/components/intake/CoverageHints'
-import { HowItWorks } from '@/components/intake/HowItWorks'
+import { DossierSpecimen } from '@/components/intake/DossierSpecimen'
+import { FiguresRow, HowItWorks } from '@/components/intake/HowItWorks'
 import {
   AdvancedSheet,
   EMPTY_ADVANCED,
@@ -24,6 +23,31 @@ function splitLinks(value: string): string[] {
     .split(/[\n,]/)
     .map((item) => item.trim())
     .filter(Boolean)
+}
+
+/** Hand-drawn underline that inks itself in under one word. */
+function Underlined({ children }: { children: string }) {
+  return (
+    <span className="relative inline-block text-accent">
+      {children}
+      <svg
+        viewBox="0 0 200 12"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+        className="absolute -bottom-1.5 left-0 h-3 w-full"
+      >
+        <path
+          d="M2 8 C 40 3, 90 3, 120 6 S 180 10, 198 4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3.5"
+          strokeLinecap="round"
+          strokeDasharray="220"
+          style={{ ['--len' as string]: 220, animation: 'ss-draw 0.9s cubic-bezier(.2,.8,.2,1) 0.35s both' }}
+        />
+      </svg>
+    </span>
+  )
 }
 
 export function HomePage() {
@@ -75,22 +99,28 @@ export function HomePage() {
 
   return (
     <Container>
-      <div className="flex flex-col items-center">
-        <div className="w-full max-w-[720px]">
-          <div className="mx-auto flex h-7 w-fit items-center gap-2 rounded-full border border-line bg-surface px-3 text-xs text-muted">
-            <span className="size-1.5 animate-pulse rounded-full bg-accent" aria-hidden="true" />
-            11 AI agents · official sources only
-          </div>
-
-          <h1 className="mt-4 text-center text-[44px] leading-[52px] font-semibold tracking-[-0.02em] max-sm:text-[32px] max-sm:leading-[40px]">
-            Find funding you actually qualify for.
-          </h1>
-          <p className="mx-auto mt-3 max-w-[560px] text-center text-base leading-[26px] text-muted">
-            Upload a resume, type, or just talk. Agents research, verify every requirement and draft
-            your application.
+      <section className="grid items-start gap-12 pt-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)] lg:gap-14 xl:pt-6">
+        <div className="min-w-0">
+          <p className="ss-rise inline-flex h-7 items-center gap-2 rounded-[6px] border border-accent/25 bg-accent-soft px-2.5 font-mono text-[11px] tracking-[0.1em] text-accent uppercase">
+            <span className="size-1.5 rounded-full bg-accent" aria-hidden="true" />
+            Scholarship research · 11 agents
           </p>
 
-          <div className="mt-8">
+          <h1
+            className="ss-rise mt-5 text-[56px] leading-[60px] font-semibold tracking-[-0.035em] max-md:text-[44px] max-md:leading-[48px] max-sm:text-[34px] max-sm:leading-[40px]"
+            style={{ ['--i' as string]: 1 }}
+          >
+            Find the funding you <Underlined>actually</Underlined> qualify for.
+          </h1>
+          <p
+            className="ss-rise mt-5 max-w-[540px] text-[17px] leading-7 text-muted max-sm:text-base"
+            style={{ ['--i' as string]: 2 }}
+          >
+            Upload a resume, write a few lines, or just talk. Agents search official pages, check every
+            rule against your profile and draft your application.
+          </p>
+
+          <div className="ss-rise mt-8" style={{ ['--i' as string]: 3 }}>
             <Composer
               description={description}
               onDescriptionChange={setDescription}
@@ -103,17 +133,12 @@ export function HomePage() {
             />
           </div>
 
-          <div className="mt-3">
-            <CoverageHints text={description} hasFiles={files.length > 0} />
-          </div>
-
           <div className="mt-4">
             {meta.isLoading ? (
-              <div className="flex items-center justify-center gap-2">
+              <div className="flex items-center gap-2">
                 <Skeleton className="h-8 w-24 bg-subtle" />
                 <Skeleton className="h-8 w-16 bg-subtle" />
                 <Skeleton className="h-8 w-16 bg-subtle" />
-                <Skeleton className="h-8 w-20 bg-subtle" />
               </div>
             ) : (
               <SampleRow
@@ -125,24 +150,17 @@ export function HomePage() {
           </div>
         </div>
 
-        <div className="mt-16 w-full">
-          <HowItWorks />
+        <div className="hidden lg:sticky lg:top-24 lg:block">
+          <DossierSpecimen />
         </div>
+      </section>
 
-        <div className="mt-12 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted">
-          <span className="inline-flex items-center gap-1.5">
-            <ShieldCheck className="size-3.5 text-ok" strokeWidth={1.75} />
-            Official sources only
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <Quote className="size-3.5" strokeWidth={1.75} />
-            Every fact cited
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <Lock className="size-3.5" strokeWidth={1.75} />
-            Files stay in this session
-          </span>
-        </div>
+      <div className="mt-20">
+        <HowItWorks />
+      </div>
+
+      <div className="mt-20">
+        <FiguresRow />
       </div>
 
       <AdvancedSheet

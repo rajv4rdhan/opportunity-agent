@@ -21,7 +21,7 @@ test('typing enables the composer and posts the description', async ({ page }) =
   await page.getByLabel('About you').fill(DESCRIPTION)
   await expect(page.getByText(`${DESCRIPTION.split(' ').length} words`)).toBeVisible()
   await expect(page.locator('[data-testid=coverage-hint]').filter({ hasText: 'Degree' })).toHaveClass(
-    /text-ok/,
+    /text-on-accent/,
   )
   await expect(submit).toBeEnabled()
 
@@ -89,7 +89,7 @@ test('a finished run shows the summary, matches and requirements', async ({ page
   await page.goto('/runs/fixture')
   await expect(page.getByText(/We verified/)).toBeVisible({ timeout: 15_000 })
   await expect(page.locator('[data-testid=match-card]')).toHaveCount(5)
-  await expect(page.getByRole('tab', { name: 'Matches' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Matches' })).toBeVisible()
 
   await page.getByRole('button', { name: /Requirements \(/ }).first().click()
   await expect(page.getByText(/full-time research-stream/i).first()).toBeVisible()
@@ -111,7 +111,7 @@ test('unlock more recalculates and shows newly eligible matches', async ({ page 
 
   await page.goto('/runs/fixture')
   await expect(page.getByText(/We verified/)).toBeVisible({ timeout: 15_000 })
-  await page.getByRole('tab', { name: /Unlock/ }).click()
+  await page.getByRole('link', { name: 'Unlock more' }).click()
   await page.getByRole('button', { name: 'Recalculate' }).click()
   await expect(page.getByText('New Scholarship')).toBeVisible()
   await expect(page.getByText('Newly eligible')).toBeVisible()
@@ -128,12 +128,7 @@ test('replay at 20x reaches the results', async ({ page }) => {
 test('history row click opens the run', async ({ page }) => {
   await page.goto('/runs')
   await expect(page.getByRole('heading', { name: 'History' })).toBeVisible()
-  const width = page.viewportSize()?.width ?? 0
-  if (width >= 640) {
-    await page.getByRole('row').filter({ hasText: 'fixture' }).click()
-  } else {
-    await page.getByTestId('history-card').filter({ hasText: 'fixture' }).click()
-  }
+  await page.getByTestId('history-card').filter({ hasText: 'fixture' }).click()
   await page.waitForURL('**/runs/fixture')
   await expect(page.getByText(/We verified/)).toBeVisible({ timeout: 15_000 })
 })

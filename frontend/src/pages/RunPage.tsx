@@ -7,25 +7,18 @@ import type { FinalReport } from '@/api/types'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Panel } from '@/components/common/Panel'
 import { Container } from '@/components/layout/Container'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ActivityPanel } from '@/components/run/ActivityPanel'
 import { BrowserPanel } from '@/components/run/BrowserPanel'
 import { GraphPanel } from '@/components/run/GraphPanel'
 import { InputRequestCard } from '@/components/run/InputRequestCard'
-import { KpiStrip } from '@/components/run/KpiStrip'
-import { PhaseStepper } from '@/components/run/PhaseStepper'
 import { ProfilePanel } from '@/components/run/ProfilePanel'
 import { ReplayBar } from '@/components/run/ReplayBar'
-import { RunHeader } from '@/components/run/RunHeader'
+import { RunBand } from '@/components/run/RunBand'
 import { SourcesPanel } from '@/components/run/SourcesPanel'
 import { SwarmSection } from '@/components/run/SwarmSection'
+import { Telemetry } from '@/components/run/Telemetry'
 import { ResultsView } from '@/components/results/ResultsView'
 import { cn } from '@/lib/cn'
 import { useMediaQuery } from '@/lib/useMediaQuery'
@@ -57,112 +50,82 @@ function useRunTitle(state: RunState, name: string) {
   }, [state.finished, state.status, state.phase, name])
 }
 
-function PanelsLayout({
+function SideTabs({
   state,
-  isLg,
-  isXl,
   graphData,
   graphLoading,
+  className,
 }: {
   state: RunState
-  isLg: boolean
-  isXl: boolean
   graphData: Record<string, unknown> | undefined
   graphLoading: boolean
+  className?: string
 }) {
-  const tabItems = isLg
-    ? [
-        { value: 'profile', label: 'Profile' },
-        { value: 'activity', label: 'Activity' },
-        { value: 'sources', label: 'Sources' },
-      ]
-    : [
-        { value: 'profile', label: 'Profile' },
-        { value: 'activity', label: 'Activity' },
-        { value: 'sources', label: 'Sources' },
-        { value: 'graph', label: 'Graph' },
-        { value: 'browser', label: 'Browser' },
-      ]
-
   return (
-    <>
-      {isXl ? (
-        <div data-row="panels" className="grid h-[440px] grid-cols-3 gap-6">
-          <ProfilePanel state={state} />
-          <ActivityPanel state={state} />
-          <SourcesPanel state={state} />
-        </div>
-      ) : (
-        <div className={cn('flex flex-col', isLg ? 'h-[480px]' : 'h-[520px]')}>
-          <Tabs defaultValue="profile" className="flex h-full min-h-0 flex-col">
-            <TabsList className={cn('grid h-9 w-full bg-subtle', isLg ? 'grid-cols-3' : 'grid-cols-5')}>
-              {tabItems.map((item) => (
-                <TabsTrigger key={item.value} value={item.value} className="h-8 text-xs">
-                  {item.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-            <TabsContent value="profile" className="min-h-0 flex-1">
-              <ProfilePanel state={state} />
-            </TabsContent>
-            <TabsContent value="activity" className="min-h-0 flex-1">
-              <ActivityPanel state={state} title={false} />
-            </TabsContent>
-            <TabsContent value="sources" className="min-h-0 flex-1">
-              <SourcesPanel state={state} />
-            </TabsContent>
-            {!isLg ? (
-              <>
-                <TabsContent value="graph" className="min-h-0 flex-1">
-                  <GraphPanel data={graphData} loading={graphLoading} />
-                </TabsContent>
-                <TabsContent value="browser" className="min-h-0 flex-1">
-                  <BrowserPanel url={state.liveViewUrl} finished={state.finished} />
-                </TabsContent>
-              </>
-            ) : null}
-          </Tabs>
-        </div>
-      )}
-
-      {isLg ? (
-        <div data-row="insight" className="grid h-[360px] grid-cols-2 gap-6 xl:h-[400px]">
-          <GraphPanel data={graphData} loading={graphLoading} />
-          <BrowserPanel url={state.liveViewUrl} finished={state.finished} />
-        </div>
-      ) : null}
-    </>
+    <Tabs defaultValue="profile" className={cn('flex min-h-0 flex-col gap-2', className)}>
+      <TabsList className="grid h-10 w-full grid-cols-4 rounded-[10px] border border-line bg-surface p-1">
+        {[
+          { value: 'profile', label: 'Profile' },
+          { value: 'sources', label: 'Sources' },
+          { value: 'browser', label: 'Browser' },
+          { value: 'graph', label: 'Graph' },
+        ].map((item) => (
+          <TabsTrigger
+            key={item.value}
+            value={item.value}
+            className="h-8 rounded-[7px] text-xs data-[state=active]:bg-accent data-[state=active]:text-on-accent data-[state=active]:shadow-none"
+          >
+            {item.label}
+          </TabsTrigger>
+        ))}
+      </TabsList>
+      <TabsContent value="profile" className="min-h-0 flex-1">
+        <ProfilePanel state={state} />
+      </TabsContent>
+      <TabsContent value="sources" className="min-h-0 flex-1">
+        <SourcesPanel state={state} />
+      </TabsContent>
+      <TabsContent value="browser" className="min-h-0 flex-1">
+        <BrowserPanel url={state.liveViewUrl} finished={state.finished} />
+      </TabsContent>
+      <TabsContent value="graph" className="min-h-0 flex-1">
+        <GraphPanel data={graphData} loading={graphLoading} />
+      </TabsContent>
+    </Tabs>
   )
 }
 
 function MissionLayout({
   state,
   isLg,
-  isXl,
   graphData,
   graphLoading,
-  afterPhase,
+  afterBand,
 }: {
   state: RunState
   isLg: boolean
-  isXl: boolean
   graphData: Record<string, unknown> | undefined
   graphLoading: boolean
-  afterPhase?: ReactNode
+  afterBand?: ReactNode
 }) {
   return (
     <div className="flex flex-col gap-6">
-      <PhaseStepper state={state} compact={!isLg} />
-      {afterPhase}
-      <KpiStrip state={state} />
+      {afterBand}
       <SwarmSection state={state} isLg={isLg} />
-      <PanelsLayout
-        state={state}
-        isLg={isLg}
-        isXl={isXl}
-        graphData={graphData}
-        graphLoading={graphLoading}
-      />
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="h-[560px] min-h-0 min-w-0 lg:h-[640px]">
+          <ActivityPanel state={state} />
+        </div>
+        <aside className="flex min-h-0 min-w-0 flex-col gap-4 lg:h-[640px]">
+          <Telemetry state={state} />
+          <SideTabs
+            state={state}
+            graphData={graphData}
+            graphLoading={graphLoading}
+            className="h-[520px] lg:h-auto lg:flex-1"
+          />
+        </aside>
+      </div>
     </div>
   )
 }
@@ -215,7 +178,6 @@ function RunBody({
   replayDone?: boolean
 }) {
   const isLg = useMediaQuery('(min-width: 1024px)')
-  const isXl = useMediaQuery('(min-width: 1280px)')
   const run = useRun(state.runId)
   const graph = useGraph(state.runId, state.graphVersion)
   const name = displayName(state, runName, report)
@@ -234,7 +196,6 @@ function RunBody({
     <MissionLayout
       state={state}
       isLg={isLg}
-      isXl={isXl}
       graphData={graph.data}
       graphLoading={graph.isLoading}
     />
@@ -253,7 +214,7 @@ function RunBody({
       ) : null}
       <Container>
         <div className="flex flex-col gap-6">
-          <RunHeader
+          <RunBand
             state={state}
             run={run.data}
             report={report}
@@ -262,38 +223,19 @@ function RunBody({
           />
 
           {finished && report ? (
-            <>
-              <ResultsView runId={state.runId} report={report} revisions={revisions} />
-              <Accordion type="single" collapsible className="ss-no-print">
-                <AccordionItem value="mission">
-                  <AccordionTrigger className="text-sm">How the swarm worked</AccordionTrigger>
-                  <AccordionContent>{mission}</AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </>
+            <ResultsView runId={state.runId} report={report} revisions={revisions} swarm={mission} />
           ) : failed ? (
             <>
               <FailedPanel runId={state.runId} error={error} />
-              <Accordion
-                type="single"
-                collapsible
-                defaultValue="mission"
-                className="ss-no-print"
-              >
-                <AccordionItem value="mission">
-                  <AccordionTrigger className="text-sm">How the swarm worked</AccordionTrigger>
-                  <AccordionContent>{mission}</AccordionContent>
-                </AccordionItem>
-              </Accordion>
+              {mission}
             </>
           ) : (
             <MissionLayout
               state={state}
               isLg={isLg}
-              isXl={isXl}
               graphData={graph.data}
               graphLoading={graph.isLoading}
-              afterPhase={
+              afterBand={
                 state.interrupt ? (
                   <InputRequestCard runId={state.runId} payload={state.interrupt} />
                 ) : null

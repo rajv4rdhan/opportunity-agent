@@ -28,11 +28,13 @@ export function Header() {
   const ThemeIcon = mode === 'light' ? Sun : mode === 'dark' ? Moon : Monitor
 
   return (
-    <header className="sticky top-0 z-40 h-14 border-b border-line bg-surface/80 backdrop-blur">
+    <header className="sticky top-0 z-40 h-16 border-b border-line bg-surface/90 backdrop-blur">
       <Container className="flex h-full items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 text-ink" aria-label="ScholarSwarm home">
-          <LogoMark className="text-accent" />
-          <span className="text-[15px] font-semibold tracking-[-0.01em]">ScholarSwarm</span>
+        <Link to="/" className="group flex items-center gap-2.5 text-ink" aria-label="ScholarSwarm home">
+          <span className="flex size-8 items-center justify-center rounded-[8px] bg-accent text-on-accent transition-transform duration-300 group-hover:-rotate-6">
+            <LogoMark className="size-[18px]" />
+          </span>
+          <span className="text-[16px] font-semibold tracking-[-0.02em]">ScholarSwarm</span>
         </Link>
 
         <nav className="flex items-center gap-1">

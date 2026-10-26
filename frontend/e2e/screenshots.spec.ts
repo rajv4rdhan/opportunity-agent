@@ -16,10 +16,23 @@ test.beforeEach(async ({ page }, testInfo) => {
   test.skip(!PROJECTS.has(testInfo.project.name), 'Curated screenshot projects only')
 })
 
+/** Scroll through the page so in-view reveals run, then return to the top. */
+async function revealAll(page: import('@playwright/test').Page) {
+  await page.evaluate(async () => {
+    for (let y = 0; y < document.body.scrollHeight; y += 400) {
+      window.scrollTo(0, y)
+      await new Promise((resolve) => setTimeout(resolve, 60))
+    }
+    window.scrollTo(0, 0)
+  })
+  await page.waitForTimeout(1300)
+}
+
 test('home', async ({ page }, testInfo) => {
   await mockApi(page)
   await page.goto('/')
   await page.waitForTimeout(800)
+  await revealAll(page)
   await page.screenshot({ path: path.join(OUT, `home-${testInfo.project.name}.png`), fullPage: true })
 })
 
@@ -58,8 +71,8 @@ test('run-finished-unlock', async ({ page }, testInfo) => {
   await mockApi(page)
   await page.goto('/runs/fixture')
   await expect(page.getByText(/We verified/)).toBeVisible({ timeout: 15_000 })
-  await page.getByRole('tab', { name: /Unlock/ }).click()
-  await page.waitForTimeout(300)
+  await page.getByRole('link', { name: 'Unlock more' }).click()
+  await page.waitForTimeout(900)
   await page.screenshot({
     path: path.join(OUT, `run-finished-unlock-${testInfo.project.name}.png`),
     fullPage: true,
@@ -70,8 +83,8 @@ test('run-finished-sop', async ({ page }, testInfo) => {
   await mockApi(page)
   await page.goto('/runs/fixture')
   await expect(page.getByText(/We verified/)).toBeVisible({ timeout: 15_000 })
-  await page.getByRole('tab', { name: 'SOP' }).click()
-  await page.waitForTimeout(300)
+  await page.getByRole('link', { name: 'SOP' }).click()
+  await page.waitForTimeout(900)
   await page.screenshot({
     path: path.join(OUT, `run-finished-sop-${testInfo.project.name}.png`),
     fullPage: true,

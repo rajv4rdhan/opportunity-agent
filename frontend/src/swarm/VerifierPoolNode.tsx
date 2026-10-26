@@ -29,9 +29,9 @@ function chipClass(worker: Worker, tick: number): string {
     case 'fetching':
       return 'border-accent/30 text-ink'
     case 'reading':
-      return 'border-accent text-ink'
+      return 'border-accent bg-accent-soft text-accent'
     case 'verified':
-      return 'border-ok/40 bg-ok-soft text-ok'
+      return 'border-accent bg-accent text-on-accent'
     case 'rejected':
       return 'border-line text-muted line-through opacity-60'
     case 'failed':
@@ -65,13 +65,21 @@ export function VerifierPoolNode({ data }: NodeProps<VerifierFlowNode>) {
   return (
     <div
       data-testid="verifier-pool"
-      className="flex h-[300px] w-[230px] flex-col rounded-[10px] border border-line bg-surface px-3 py-2.5"
+      className={cn(
+        'flex h-[300px] w-[230px] flex-col rounded-[10px] border bg-surface px-3 py-2.5 transition-colors duration-500',
+        running > 0 ? 'border-accent shadow-[0_10px_28px_-14px_var(--color-accent)]' : 'border-line',
+      )}
     >
       <Handle id="l-t" type="target" position={Position.Left} style={{ top: 38 }} isConnectable={false} />
       <Handle id="r-s" type="source" position={Position.Right} style={{ top: 38 }} isConnectable={false} />
 
       <div className="flex items-center gap-2">
-        <span className="flex size-8 items-center justify-center rounded-[8px] bg-subtle text-muted">
+        <span
+          className={cn(
+            'flex size-8 items-center justify-center rounded-[8px]',
+            running > 0 ? 'bg-accent text-on-accent' : 'bg-subtle text-muted',
+          )}
+        >
           <ShieldCheck className="size-4" strokeWidth={1.75} />
         </span>
         <span

@@ -34,11 +34,7 @@ export function FlowEdge({
 
   const active = Boolean(data?.active)
   const traversed = Boolean(data?.traversed)
-  const stroke = active
-    ? 'var(--color-accent)'
-    : traversed
-      ? 'var(--color-muted)'
-      : 'var(--color-line-strong)'
+  const stroke = active || traversed ? 'var(--color-accent)' : 'var(--color-line-strong)'
 
   return (
     <>
@@ -50,19 +46,24 @@ export function FlowEdge({
           strokeWidth: active ? 2 : 1.5,
           strokeDasharray: active ? '6 4' : undefined,
           animation: active ? 'ss-dash .6s linear infinite' : undefined,
-          opacity: traversed && !active ? 0.6 : 1,
+          opacity: traversed && !active ? 0.45 : 1,
         }}
       />
       {active ? (
-        <circle className="ss-particle" r="3" fill="var(--color-accent)">
-          <animateMotion dur="1.2s" repeatCount="indefinite" path={path} />
-        </circle>
+        <>
+          <circle className="ss-particle" r="3.5" fill="var(--color-accent)">
+            <animateMotion dur="1.3s" repeatCount="indefinite" path={path} />
+          </circle>
+          <circle className="ss-particle" r="2.5" fill="var(--color-accent)" opacity="0.5">
+            <animateMotion dur="1.3s" begin="0.65s" repeatCount="indefinite" path={path} />
+          </circle>
+        </>
       ) : null}
       {active && data?.label ? (
         <EdgeLabelRenderer>
           <div
             className={cn(
-              'pointer-events-none absolute rounded-full border border-accent/30 bg-surface px-2 py-0.5 text-[11px] font-medium text-accent shadow-card',
+              'pointer-events-none absolute rounded-[6px] bg-accent px-2 py-0.5 font-mono text-[11px] font-medium text-on-accent shadow-card',
               'animate-in fade-in-0 duration-200',
             )}
             style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)` }}

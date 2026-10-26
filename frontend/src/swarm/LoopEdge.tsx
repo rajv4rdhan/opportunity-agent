@@ -100,11 +100,7 @@ export function LoopEdge({
   const path = roundedPath(points)
   const active = Boolean(data?.active)
   const traversed = Boolean(data?.traversed)
-  const stroke = active
-    ? 'var(--color-accent)'
-    : traversed
-      ? 'var(--color-muted)'
-      : 'var(--color-line-strong)'
+  const stroke = active || traversed ? 'var(--color-accent)' : 'var(--color-line-strong)'
   const labelPoint = points[Math.floor(points.length / 2)] ?? { x: sourceX, y: sourceY }
 
   return (
@@ -123,7 +119,7 @@ export function LoopEdge({
       {data?.label ? (
         <EdgeLabelRenderer>
           <div
-            className="pointer-events-none absolute rounded-full border border-line bg-surface px-2 py-0.5 text-[11px] font-medium text-muted shadow-card data-[active=true]:border-accent/30 data-[active=true]:text-accent"
+            className="pointer-events-none absolute rounded-[6px] border border-line bg-surface px-2 py-0.5 font-mono text-[10px] tracking-[0.08em] text-muted uppercase data-[active=true]:border-accent data-[active=true]:bg-accent data-[active=true]:text-on-accent"
             data-active={active}
             style={{
               transform: `translate(-50%, -50%) translate(${labelPoint.x}px, ${labelPoint.y}px)`,

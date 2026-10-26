@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, Loader2, Paperclip, Upload } from 'lucide-react'
+import { useEffect, useRef, useState, type ComponentType } from 'react'
+import { ArrowRight, FileUp, Loader2, Mic, PenLine, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { AttachmentChip, type IntakeAttachment } from '@/components/intake/AttachmentChip'
+import { CoverageHints } from '@/components/intake/CoverageHints'
 import { VoiceButton } from '@/components/intake/VoiceButton'
 import { Button } from '@/components/ui/button'
 import {
@@ -21,9 +22,17 @@ import { cn } from '@/lib/cn'
 const MAX_BYTES = 10 * 1024 * 1024
 const MAX_FILES = 2
 const LANGUAGES = [
-  { value: 'en-IN', label: 'EN-IN' },
-  { value: 'en-US', label: 'EN-US' },
-  { value: 'hi-IN', label: 'HI-IN' },
+  { value: 'en-IN', label: 'English (India)' },
+  { value: 'en-US', label: 'English (US)' },
+  { value: 'hi-IN', label: 'Hindi' },
+]
+
+type Mode = 'resume' | 'write' | 'speak'
+
+const MODES: Array<{ id: Mode; label: string; hint: string; icon: ComponentType<{ className?: string; strokeWidth?: number }> }> = [
+  { id: 'resume', label: 'Resume', hint: 'Upload a PDF', icon: FileUp },
+  { id: 'write', label: 'Write', hint: 'Type a few lines', icon: PenLine },
+  { id: 'speak', label: 'Speak', hint: 'Just talk', icon: Mic },
 ]
 
 export interface ComposerValue {
@@ -44,6 +53,10 @@ function roleFor(file: File, existing: IntakeAttachment[]): 'resume' | 'transcri
 
 let nextId = 1
 
+/**
+ * The intake card. Three ways in — upload, write, speak — sharing one
+ * description, one attachment list and one submit button.
+ */
 export function Composer({
   description,
   onDescriptionChange,
@@ -63,8 +76,10 @@ export function Composer({
   busy: boolean
   onSubmit: (value: ComposerValue) => void
 }) {
+  const [mode, setMode] = useState<Mode>('write')
   const [dragging, setDragging] = useState(false)
   const [interim, setInterim] = useState('')
+  const [listening, setListening] = useState(false)
   const [lang, setLang] = useState('en-IN')
   const [voiceUsed, setVoiceUsed] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -79,15 +94,14 @@ export function Composer({
     const element = textRef.current
     if (!element) return
     element.style.height = 'auto'
-    element.style.height = `${Math.min(320, Math.max(48, element.scrollHeight))}px`
-  }, [description])
+    element.style.height = `${Math.min(300, Math.max(element.scrollHeight, mode === 'speak' ? 88 : 152))}px`
+  }, [description, mode])
 
   function addFiles(incoming: FileList | File[]) {
     const list = Array.from(incoming)
     const accepted: IntakeAttachment[] = []
-    const working = [...files]
     for (const file of list) {
-      if (working.length >= MAX_FILES) {
+      if (files.length + accepted.length >= MAX_FILES) {
         toast.error('You can attach at most two PDFs.')
         break
       }
@@ -99,21 +113,9 @@ export function Composer({
         toast.error(`${file.name} is larger than 10 MB.`)
         continue
       }
-      const attachment: IntakeAttachment = {
-        id: `file-${nextId++}`,
-        file,
-        role: roleFor(file, [...working, ...accepted]),
-      }
-      accepted.push(attachment)
+      accepted.push({ id: `file-${nextId++}`, file, role: roleFor(file, [...files, ...accepted]) })
     }
     if (accepted.length) onFilesChange([...files, ...accepted])
-  }
-
-  function onDrop(event: React.DragEvent<HTMLDivElement>) {
-    event.preventDefault()
-    dragDepth.current = 0
-    setDragging(false)
-    if (event.dataTransfer.files.length) addFiles(event.dataTransfer.files)
   }
 
   function handleDescription(value: string) {
@@ -136,12 +138,33 @@ export function Composer({
     onSubmit({ description: description.trim(), files, sample, modes })
   }
 
+  const textarea = (
+    <Textarea
+      ref={textRef}
+      value={description}
+      onChange={(event) => handleDescription(event.target.value)}
+      onKeyDown={(event) => {
+        if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+          event.preventDefault()
+          submit()
+        }
+      }}
+      placeholder={
+        mode === 'speak'
+          ? 'Your words appear here — edit anything before you send.'
+          : 'I’m a final-year B.Tech CSE student with an 8.2 CGPA. I built a RAG chatbot and a resume parser. I want a funded master’s in AI in Germany or Canada…'
+      }
+      aria-label="About you"
+      className="max-h-[300px] resize-none overflow-y-auto rounded-none border-0 bg-transparent px-0 py-0 text-[15px] leading-7 shadow-none focus-visible:ring-0 dark:bg-transparent"
+    />
+  )
+
   return (
     <div
       data-testid="composer"
       className={cn(
-        'relative w-full rounded-[16px] border border-line bg-surface shadow-card transition-shadow focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/10',
-        dragging && 'border-accent',
+        'relative w-full overflow-hidden rounded-[var(--radius-card)] border bg-surface shadow-[var(--shadow-lift)] transition-colors',
+        dragging ? 'border-accent' : 'border-line',
       )}
       onDragEnter={(event) => {
         event.preventDefault()
@@ -154,11 +177,17 @@ export function Composer({
         dragDepth.current -= 1
         if (dragDepth.current <= 0) setDragging(false)
       }}
-      onDrop={onDrop}
+      onDrop={(event) => {
+        event.preventDefault()
+        dragDepth.current = 0
+        setDragging(false)
+        if (event.dataTransfer.files.length) addFiles(event.dataTransfer.files)
+      }}
     >
       {dragging ? (
-        <div className="absolute inset-0 z-10 flex items-center justify-center rounded-[16px] border-2 border-dashed border-accent bg-accent-soft/80 text-sm font-medium text-accent">
-          <Upload className="mr-2 size-4" /> Drop PDF to attach
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-accent text-on-accent">
+          <Upload className="size-6" strokeWidth={1.75} />
+          <p className="text-sm font-semibold">Drop your PDF to attach it</p>
         </div>
       ) : null}
 
@@ -175,125 +204,174 @@ export function Composer({
         }}
       />
 
+      {/* Mode switch: three equal tabs with a sliding underline. */}
+      <div role="tablist" aria-label="How do you want to start?" className="relative grid grid-cols-3 border-b border-line">
+        {MODES.map((item) => {
+          const Icon = item.icon
+          const active = mode === item.id
+          return (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setMode(item.id)}
+              className={cn(
+                'flex h-[60px] items-center justify-center gap-2.5 px-2 text-left transition-colors',
+                active ? 'text-accent' : 'text-muted hover:text-ink',
+              )}
+            >
+              <span
+                className={cn(
+                  'flex size-8 shrink-0 items-center justify-center rounded-[8px] transition-colors',
+                  active ? 'bg-accent text-on-accent' : 'bg-subtle',
+                )}
+              >
+                <Icon className="size-4" strokeWidth={1.75} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm leading-5 font-semibold">{item.label}</span>
+                <span className="hidden text-[11px] leading-4 text-muted sm:block">{item.hint}</span>
+              </span>
+            </button>
+          )
+        })}
+        <span
+          aria-hidden="true"
+          className="absolute bottom-[-1px] left-0 h-[2px] w-1/3 bg-accent transition-transform duration-300 ease-[cubic-bezier(.2,.8,.2,1)]"
+          style={{ transform: `translateX(${MODES.findIndex((item) => item.id === mode) * 100}%)` }}
+        />
+      </div>
+
       {files.length ? (
-        <div className="flex flex-wrap gap-2 px-4 pt-4">
+        <div className="flex flex-wrap gap-2 border-b border-line px-5 py-3">
           {files.map((attachment) => (
             <AttachmentChip
               key={attachment.id}
               attachment={attachment}
               onRemove={() => onFilesChange(files.filter((item) => item.id !== attachment.id))}
               onRoleChange={(role) =>
-                onFilesChange(
-                  files.map((item) =>
-                    item.id === attachment.id ? { ...item, role } : item,
-                  ),
-                )
+                onFilesChange(files.map((item) => (item.id === attachment.id ? { ...item, role } : item)))
               }
             />
           ))}
         </div>
       ) : null}
 
-      <Textarea
-        ref={textRef}
-        value={description}
-        onChange={(event) => handleDescription(event.target.value)}
-        onKeyDown={(event) => {
-          if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
-            event.preventDefault()
-            submit()
-          }
-        }}
-        placeholder="Tell us about yourself — your degree, grades, projects, and what you want to study and where. Or drop your resume here."
-        aria-label="About you"
-        className="min-h-[132px] max-h-[320px] resize-none overflow-y-auto border-0 bg-transparent px-4 pt-4 pb-2 text-[15px] leading-6 shadow-none focus-visible:ring-0 dark:bg-transparent"
-      />
+      <div key={mode} className="ss-rise min-h-[200px] px-5 pt-5 pb-4">
+        {mode === 'resume' ? (
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            className="group flex min-h-[176px] w-full flex-col items-center justify-center gap-3 rounded-[10px] border border-dashed border-accent/40 bg-accent-soft/50 px-4 text-center transition-colors hover:border-accent hover:bg-accent-soft"
+          >
+            <span className="flex size-12 items-center justify-center rounded-full bg-surface text-accent shadow-card transition-transform duration-300 group-hover:-translate-y-0.5">
+              <FileUp className="size-5" strokeWidth={1.75} />
+            </span>
+            <span>
+              <span className="block text-[15px] font-semibold text-ink">Drop your resume PDF here</span>
+              <span className="mt-0.5 block text-[13px] text-muted">
+                or <span className="font-medium text-accent underline underline-offset-4">browse files</span> · add a
+                transcript too if you have one
+              </span>
+            </span>
+          </button>
+        ) : mode === 'speak' ? (
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                {listening ? (
+                  <>
+                    <span className="absolute inset-0 animate-[ss-ring_1.6s_ease-out_infinite] rounded-full bg-accent/40" aria-hidden="true" />
+                    <span className="absolute inset-0 animate-[ss-ring_1.6s_ease-out_0.8s_infinite] rounded-full bg-accent/30" aria-hidden="true" />
+                  </>
+                ) : null}
+                <VoiceButton
+                  lang={lang}
+                  onFinal={appendVoice}
+                  onInterimChange={setInterim}
+                  onListeningChange={setListening}
+                  size="lg"
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[15px] font-semibold">
+                  {listening ? 'Listening… talk naturally' : supported ? 'Tap the mic and talk' : 'Voice needs Chrome or Edge'}
+                </p>
+                <p className="text-[13px] text-muted">
+                  Your degree, grades, projects, where you want to study and your budget.
+                </p>
+              </div>
+              {supported ? (
+                <Select value={lang} onValueChange={setLang}>
+                  <SelectTrigger aria-label="Spoken language" className="h-9 w-[150px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LANGUAGES.map((language) => (
+                      <SelectItem key={language.value} value={language.value}>
+                        {language.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : null}
+            </div>
+            {interim ? (
+              <p className="flex items-center gap-2 text-sm text-accent italic">
+                <span className="ss-eq scale-75" aria-hidden="true">
+                  <i />
+                  <i />
+                  <i />
+                  <i />
+                  <i />
+                </span>
+                “{interim}”
+              </p>
+            ) : null}
+            <div className="rounded-[10px] border border-line bg-canvas px-4 py-3">{textarea}</div>
+          </div>
+        ) : (
+          textarea
+        )}
+      </div>
 
-      {interim ? (
-        <div className="flex items-center gap-2 px-4 pb-2 text-sm italic text-muted">
-          <span className="size-1.5 animate-pulse rounded-full bg-err" aria-hidden="true" />
-          Listening… “{interim}”
-        </div>
-      ) : null}
+      <div className="border-t border-line bg-canvas/60 px-5 py-3">
+        <CoverageHints text={description} hasFiles={files.length > 0} />
+      </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-3 py-2">
-        <div className="flex items-center gap-1">
-          <Tooltip>
-            <TooltipTrigger asChild>
+      <div className="flex items-center justify-between gap-3 border-t border-line px-5 py-3">
+        <p className="text-xs text-muted tabular-nums">
+          {files.length ? `${files.length} file${files.length > 1 ? 's' : ''} · ` : ''}
+          {words} words
+        </p>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span tabIndex={0}>
               <Button
                 type="button"
-                variant="ghost"
-                size="icon"
-                className="size-8 rounded-full text-muted hover:bg-subtle hover:text-ink"
-                onClick={() => inputRef.current?.click()}
-                aria-label="Attach PDF"
+                onClick={submit}
+                disabled={!valid || busy}
+                className="group h-11 gap-2 rounded-[10px] px-5 text-[15px] font-semibold"
               >
-                <Paperclip className="size-4" strokeWidth={1.75} />
+                {busy ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Starting…
+                  </>
+                ) : (
+                  <>
+                    Find scholarships
+                    <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" strokeWidth={2} />
+                  </>
+                )}
               </Button>
-            </TooltipTrigger>
-            <TooltipContent>Attach PDF (resume or transcript)</TooltipContent>
-          </Tooltip>
-
-          {supported ? (
-            <>
-              <VoiceButton
-                lang={lang}
-                onFinal={appendVoice}
-                onInterimChange={setInterim}
-              />
-              <Select value={lang} onValueChange={setLang}>
-                <SelectTrigger
-                  aria-label="Spoken language"
-                  className="h-8 w-[92px] border-0 bg-transparent text-xs text-muted shadow-none focus-visible:ring-0 dark:bg-transparent"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {LANGUAGES.map((language) => (
-                    <SelectItem key={language.value} value={language.value}>
-                      {language.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </>
-          ) : null}
-        </div>
-
-        <div className="ml-auto flex items-center gap-2 sm:gap-3">
-          <span className="text-xs text-muted tabular-nums">{words} words</span>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span tabIndex={0}>
-                <Button
-                  type="button"
-                  onClick={submit}
-                  disabled={!valid || busy}
-                  className="h-9 gap-1.5 px-3 sm:px-4"
-                >
-                  {busy ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" />
-                      Starting…
-                    </>
-                  ) : (
-                    <>
-                      Find scholarships
-                      <ArrowRight className="size-4" strokeWidth={1.75} />
-                    </>
-                  )}
-                </Button>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>
-              {busy
-                ? 'Starting your run'
-                : valid
-                  ? 'Start the search'
-                  : 'Add a resume or at least 20 words about you'}
-            </TooltipContent>
-          </Tooltip>
-        </div>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            {busy ? 'Starting your run' : valid ? 'Start the search (Ctrl+Enter)' : 'Add a resume or at least 20 words about you'}
+          </TooltipContent>
+        </Tooltip>
       </div>
     </div>
   )
