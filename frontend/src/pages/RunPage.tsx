@@ -62,11 +62,13 @@ function PanelsLayout({
   isLg,
   isXl,
   graphData,
+  graphLoading,
 }: {
   state: RunState
   isLg: boolean
   isXl: boolean
   graphData: Record<string, unknown> | undefined
+  graphLoading: boolean
 }) {
   const tabItems = isLg
     ? [
@@ -112,7 +114,7 @@ function PanelsLayout({
             {!isLg ? (
               <>
                 <TabsContent value="graph" className="min-h-0 flex-1">
-                  <GraphPanel data={graphData} />
+                  <GraphPanel data={graphData} loading={graphLoading} />
                 </TabsContent>
                 <TabsContent value="browser" className="min-h-0 flex-1">
                   <BrowserPanel url={state.liveViewUrl} finished={state.finished} />
@@ -125,7 +127,7 @@ function PanelsLayout({
 
       {isLg ? (
         <div data-row="insight" className="grid h-[360px] grid-cols-2 gap-6 xl:h-[400px]">
-          <GraphPanel data={graphData} />
+          <GraphPanel data={graphData} loading={graphLoading} />
           <BrowserPanel url={state.liveViewUrl} finished={state.finished} />
         </div>
       ) : null}
@@ -138,12 +140,14 @@ function MissionLayout({
   isLg,
   isXl,
   graphData,
+  graphLoading,
   afterPhase,
 }: {
   state: RunState
   isLg: boolean
   isXl: boolean
   graphData: Record<string, unknown> | undefined
+  graphLoading: boolean
   afterPhase?: ReactNode
 }) {
   return (
@@ -152,7 +156,13 @@ function MissionLayout({
       {afterPhase}
       <KpiStrip state={state} />
       <SwarmSection state={state} isLg={isLg} />
-      <PanelsLayout state={state} isLg={isLg} isXl={isXl} graphData={graphData} />
+      <PanelsLayout
+        state={state}
+        isLg={isLg}
+        isXl={isXl}
+        graphData={graphData}
+        graphLoading={graphLoading}
+      />
     </div>
   )
 }
@@ -221,7 +231,13 @@ function RunBody({
   const finished = state.finished && state.status === 'finished' && Boolean(report)
   const failed = state.finished && state.status === 'failed' && !report
   const mission = (
-    <MissionLayout state={state} isLg={isLg} isXl={isXl} graphData={graph.data} />
+    <MissionLayout
+      state={state}
+      isLg={isLg}
+      isXl={isXl}
+      graphData={graph.data}
+      graphLoading={graph.isLoading}
+    />
   )
 
   return (
@@ -276,6 +292,7 @@ function RunBody({
               isLg={isLg}
               isXl={isXl}
               graphData={graph.data}
+              graphLoading={graph.isLoading}
               afterPhase={
                 state.interrupt ? (
                   <InputRequestCard runId={state.runId} payload={state.interrupt} />

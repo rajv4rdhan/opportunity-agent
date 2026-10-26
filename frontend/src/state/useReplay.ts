@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
 
+import { toast } from 'sonner'
+
 import { getEventsJson } from '@/api/client'
 import type { Event } from '@/api/types'
 import { initialRunState, reduceEvent, type RunState } from './runReducer'
@@ -71,7 +73,10 @@ export function useReplay(
         step()
       })
       .catch(() => {
-        if (!cancelled) setDone(true)
+        if (!cancelled) {
+          setDone(true)
+          toast.error('Could not load the replay')
+        }
       })
 
     return () => {

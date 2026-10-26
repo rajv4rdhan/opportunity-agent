@@ -8,6 +8,7 @@ from pathlib import Path
 from app.config import BACKEND_DIR
 
 SAMPLES_DIR = BACKEND_DIR / "samples"
+SAMPLE_ORDER = {"rahul": 0, "priya": 1, "arjun": 2, "meera": 3}
 
 
 def sample_description(name: str, form: dict) -> str:
@@ -31,7 +32,11 @@ def load_samples() -> list[dict]:
     if not SAMPLES_DIR.exists():
         return []
     samples: list[dict] = []
-    for folder in sorted(SAMPLES_DIR.iterdir()):
+    folders = sorted(
+        SAMPLES_DIR.iterdir(),
+        key=lambda folder: (SAMPLE_ORDER.get(folder.name, 99), folder.name),
+    )
+    for folder in folders:
         form_path = folder / "form.json"
         if not folder.is_dir() or not form_path.exists():
             continue

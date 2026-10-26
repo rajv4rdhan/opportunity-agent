@@ -6,6 +6,7 @@ import ForceGraph2D, {
 } from 'react-force-graph-2d'
 
 import { Panel } from '@/components/common/Panel'
+import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/cn'
 
 const NODE_COLORS: Record<string, string> = {
@@ -34,7 +35,13 @@ interface GraphLink {
   [key: string]: unknown
 }
 
-export function GraphPanel({ data }: { data: Record<string, unknown> | undefined }) {
+export function GraphPanel({
+  data,
+  loading = false,
+}: {
+  data: Record<string, unknown> | undefined
+  loading?: boolean
+}) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const graphRef = useRef<ForceGraphMethods<GraphNode, GraphLink> | undefined>(undefined)
   const [size, setSize] = useState({ width: 0, height: 0 })
@@ -77,7 +84,12 @@ export function GraphPanel({ data }: { data: Record<string, unknown> | undefined
       flush
       className="overflow-hidden"
     >
-      {graphData.nodes.length === 0 ? (
+      {loading && graphData.nodes.length === 0 ? (
+        <div className="space-y-3 p-5">
+          <Skeleton className="h-4 w-32 bg-subtle" />
+          <Skeleton className="h-40 w-full bg-subtle" />
+        </div>
+      ) : graphData.nodes.length === 0 ? (
         <p className="py-16 text-center text-sm text-muted">
           The graph fills in once the Matcher runs.
         </p>
@@ -106,7 +118,7 @@ export function GraphPanel({ data }: { data: Record<string, unknown> | undefined
                   ctx.font = `${11 / globalScale}px "Inter Variable", sans-serif`
                   ctx.textAlign = 'center'
                   ctx.textBaseline = 'top'
-                  ctx.fillStyle = 'var(--color-ink)'
+                  ctx.fillStyle = '#71717A'
                   ctx.fillText(label.slice(0, 28), node.x ?? 0, (node.y ?? 0) + radius + 2 / globalScale)
                 }
               }}

@@ -14,6 +14,7 @@ import {
 } from '@/components/intake/AdvancedSheet'
 import { SampleRow } from '@/components/intake/SampleRow'
 import { Container } from '@/components/layout/Container'
+import { Skeleton } from '@/components/ui/skeleton'
 import type { SampleInfo } from '@/api/types'
 import type { IntakeAttachment } from '@/components/intake/AttachmentChip'
 import { useDocumentTitle } from '@/lib/useDocumentTitle'
@@ -107,11 +108,20 @@ export function HomePage() {
           </div>
 
           <div className="mt-4">
-            <SampleRow
-              samples={meta.data?.samples ?? []}
-              onPick={pickSample}
-              onAdvanced={() => setAdvancedOpen(true)}
-            />
+            {meta.isLoading ? (
+              <div className="flex items-center justify-center gap-2">
+                <Skeleton className="h-8 w-24 bg-subtle" />
+                <Skeleton className="h-8 w-16 bg-subtle" />
+                <Skeleton className="h-8 w-16 bg-subtle" />
+                <Skeleton className="h-8 w-20 bg-subtle" />
+              </div>
+            ) : (
+              <SampleRow
+                samples={meta.data?.samples ?? []}
+                onPick={pickSample}
+                onAdvanced={() => setAdvancedOpen(true)}
+              />
+            )}
           </div>
         </div>
 

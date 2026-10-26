@@ -103,3 +103,18 @@ test('replay layout invariants', async ({ page }) => {
     await expectCanvasReadable(page)
   }
 })
+
+
+test('failed layout invariants', async ({ page }) => {
+  await mockApi(page, { failed: true })
+  await page.goto('/runs/fixture')
+  await expect(page.getByRole('heading', { name: 'This run stopped' })).toBeVisible()
+
+  await expectNoHorizontalScroll(page)
+  await expectContainersAligned(page)
+  await expectNoClippedText(page)
+  await expectTextInsidePanels(page)
+  if ((page.viewportSize()?.width ?? 0) < 640) {
+    await expectTapTargets(page)
+  }
+})

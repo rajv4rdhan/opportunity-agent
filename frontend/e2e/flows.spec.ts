@@ -145,3 +145,37 @@ test('the 404 page offers a way home', async ({ page }) => {
   await page.getByRole('link', { name: 'Go home' }).click()
   await page.waitForURL('**/')
 })
+
+
+test('Ctrl+Enter submits the composer', async ({ page }) => {
+  await mockCreateRun(page)
+  await page.goto('/')
+  await page.getByLabel('About you').fill(DESCRIPTION)
+  await expect(page.getByRole('button', { name: 'Find scholarships' })).toBeEnabled()
+
+  const [request] = await Promise.all([
+    page.waitForRequest((item) => item.url().endsWith('/api/runs') && item.method() === 'POST'),
+    page.getByLabel('About you').press('Control+Enter'),
+  ])
+  expect(request.postData() ?? '').toContain('final-year computer science')
+  await page.waitForURL('**/runs/fixture')
+})
+
+test('Escape closes the advanced sheet', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Advanced' }).click()
+  await expect(page.getByRole('heading', { name: 'Advanced options' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('heading', { name: 'Advanced options' })).toBeHidden()
+})
+
+
+test('a failed run explains what happened and offers a replay', async ({ page }) => {
+  await mockApi(page, { failed: true })
+  await page.goto('/runs/fixture')
+  await expect(page.getByRole('heading', { name: 'This run stopped' })).toBeVisible()
+  await expect(
+    page.getByTestId('failed-panel').getByText(/browser session was interrupted/),
+  ).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Replay what happened' })).toBeVisible()
+})

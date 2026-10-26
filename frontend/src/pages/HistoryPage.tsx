@@ -62,7 +62,19 @@ export function HistoryPage() {
         }
       />
 
-      {runs.isLoading ? (
+      {runs.isError ? (
+        <Panel>
+          <EmptyState
+            title="Could not load history"
+            description={runs.error instanceof Error ? runs.error.message : 'Try again in a moment.'}
+            action={
+              <Button className="h-9" onClick={() => void runs.refetch()}>
+                Retry
+              </Button>
+            }
+          />
+        </Panel>
+      ) : runs.isLoading ? (
         <Panel className="p-5">
           <div className="space-y-3">
             {Array.from({ length: 4 }).map((_, index) => (

@@ -4,6 +4,7 @@ import graph from './fixtures/graph.json' with { type: 'json' }
 import eventsFull from './fixtures/events-full.json' with { type: 'json' }
 import eventsMid from './fixtures/events-mid.json' with { type: 'json' }
 import meta from './fixtures/meta.json' with { type: 'json' }
+import runFailed from './fixtures/run-failed.json' with { type: 'json' }
 import runFinished from './fixtures/run-finished.json' with { type: 'json' }
 import runMid from './fixtures/run-mid.json' with { type: 'json' }
 import runs from './fixtures/runs.json' with { type: 'json' }
@@ -29,7 +30,25 @@ export const FIXTURES = {
 
 export interface MockOptions {
   mid?: boolean
+  failed?: boolean
   fastReplay?: boolean
+}
+
+function failedEvents(): typeof eventsFull {
+  const events = recentEvents(eventsMid)
+  const last = events[events.length - 1]
+  return [
+    ...events,
+    {
+      id: (last?.id ?? 0) + 1,
+      run_id: 'fixture',
+      ts: new Date().toISOString(),
+      type: 'run_failed',
+      agent: null,
+      message: 'The browser session was interrupted before the run finished.',
+      data: {},
+    },
+  ] as typeof eventsFull
 }
 
 function compressedEvents(events: typeof eventsFull): typeof eventsFull {
@@ -59,10 +78,13 @@ export async function mockApi(page: Page, options: MockOptions = {}): Promise<vo
     if (path === '/api/runs') return json(runs)
     if (path === '/api/runs/fixture/events.json') {
       if (options.fastReplay) return json(compressedEvents(eventsFull))
+      if (options.failed) return json(failedEvents())
       return json(recentEvents(options.mid ? eventsMid : eventsFull))
     }
     if (path === '/api/runs/fixture/events') {
-      const events = recentEvents(options.mid ? eventsMid : eventsFull)
+      const events = options.failed
+        ? failedEvents()
+        : recentEvents(options.mid ? eventsMid : eventsFull)
       const body = events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join('')
       return route.fulfill({
         status: 200,
@@ -75,7 +97,11 @@ export async function mockApi(page: Page, options: MockOptions = {}): Promise<vo
       })
     }
     if (path === '/api/runs/fixture/graph') return json(graph)
-    if (path === '/api/runs/fixture') return json(options.mid ? runMid : runFinished)
+    if (path === '/api/runs/fixture') {
+      if (options.mid) return json(runMid)
+      if (options.failed) return json(runFailed)
+      return json(runFinished)
+    }
     if (path.startsWith('/api/runs/fixture/whatif')) {
       const report = runFinished.report
       return json({
