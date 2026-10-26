@@ -1,0 +1,32 @@
+# Version control / CI
+.git
+.github
+
+# Python
+**/__pycache__
+**/*.py[cod]
+**/.venv
+**/venv
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/*.egg-info
+
+# Node
+**/node_modules
+**/dist
+**/test-results
+**/playwright-report
+**/.vite
+
+# Secrets and runtime state
+**/.env
+**/.env.*
+!backend/.env.example
+backend/data
+
+# Local/editor noise
+**/.DS_Store
+**/.idea
+**/.vscode
+**/*.log
