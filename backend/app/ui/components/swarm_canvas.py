@@ -140,7 +140,7 @@ class SwarmCanvas:
                     thought = ui.label("").classes("ss-node-thought")
                 status = ui.icon("circle", size="13px").classes("ss-node-status")
             if agent["id"] == "verifier":
-                self.worker_pool = WorkerPool()
+                self.worker_pool = WorkerPool(compact=True)
         self.nodes[agent["id"]] = {
             "element": node,
             "thought": thought,

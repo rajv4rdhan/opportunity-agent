@@ -10,7 +10,9 @@ MAX_VISIBLE = 14
 
 
 class WorkerPool:
-    def __init__(self) -> None:
+    def __init__(self, compact: bool = False) -> None:
+        self.compact = compact
+        self.max_visible = 6 if compact else MAX_VISIBLE
         self._signature: tuple | None = None
         self.container = ui.column().classes("w-full gap-1")
         self.update(None)
@@ -35,17 +37,26 @@ class WorkerPool:
                 return
             counts = worker_summary(view)
             running = counts["fetching"] + counts["reading"]
-            parts = [f"Verifiers · {running} running", f"{counts['verified']} verified"]
-            if counts["rejected"]:
-                parts.append(f"{counts['rejected']} rejected")
-            if counts["queued"]:
-                parts.append(f"{counts['queued']} queued")
-            if counts["failed"]:
-                parts.append(f"{counts['failed']} failed")
+            if self.compact:
+                parts = [f"{running} running"]
+                if counts["verified"]:
+                    parts.append(f"{counts['verified']} ✓")
+                if counts["rejected"]:
+                    parts.append(f"{counts['rejected']} ✗")
+                if counts["queued"]:
+                    parts.append(f"{counts['queued']} queued")
+            else:
+                parts = [f"Verifiers · {running} running", f"{counts['verified']} verified"]
+                if counts["rejected"]:
+                    parts.append(f"{counts['rejected']} rejected")
+                if counts["queued"]:
+                    parts.append(f"{counts['queued']} queued")
+                if counts["failed"]:
+                    parts.append(f"{counts['failed']} failed")
             ui.label(" · ".join(parts)).classes("ss-small")
             with ui.element("div").classes("ss-worker-grid"):
                 workers = list(view.workers.values())
-                for worker in workers[:MAX_VISIBLE]:
+                for worker in workers[: self.max_visible]:
                     modifier = worker.state
                     if worker.flash_until >= view.tick:
                         modifier = "is-fallback"
@@ -65,5 +76,5 @@ class WorkerPool:
                     )
                     if tooltip:
                         label.tooltip(tooltip)
-                if len(workers) > MAX_VISIBLE:
-                    ui.label(f"+{len(workers) - MAX_VISIBLE} more").classes("ss-worker-more")
+                if len(workers) > self.max_visible:
+                    ui.label(f"+{len(workers) - self.max_visible} more").classes("ss-worker-more")

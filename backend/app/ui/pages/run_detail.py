@@ -94,12 +94,18 @@ async def run_detail_page(run_id: str, replay: int = 0, speed: float = 20) -> No
         with ui.row().classes("w-full flex-col xl:flex-row gap-6 items-start") as mission_row:
             with ui.column().classes("w-full xl:w-[63%] gap-4"):
                 canvas = SwarmCanvas()
+                summary_live = ui.column().classes("w-full")
+                with summary_live:
+                    summary = RunSummary(
+                        on_show_swarm=lambda: toggle_swarm(),
+                        replay_href=f"/runs/{run_id}?replay=1&speed=20",
+                    )
             with ui.column().classes("w-full xl:w-[34%] gap-4"):
                 request = InputRequest(run_id)
                 profile = ProfileCard()
                 with ui.element("div").classes("ss-card ss-card--tight w-full"):
                     with ui.tabs().props("dense no-caps align=justify").classes(
-                        "w-full text-[11px]"
+                        "w-full ss-tabs-compact"
                     ) as right_tabs:
                         activity_tab = ui.tab("Activity")
                         sources_tab = ui.tab("Sources")
@@ -115,10 +121,7 @@ async def run_detail_page(run_id: str, replay: int = 0, speed: float = 20) -> No
                         with ui.tab_panel(browser_tab):
                             browser = LiveBrowser()
 
-        summary = RunSummary(
-            on_show_swarm=lambda: toggle_swarm(),
-            replay_href=f"/runs/{run_id}?replay=1&speed=20",
-        )
+        summary_final_slot = ui.element("div").classes("w-full")
 
         errors = ui.column().classes("w-full gap-2")
         results = ui.column().classes("w-full gap-4").props("id=results")
@@ -127,6 +130,7 @@ async def run_detail_page(run_id: str, replay: int = 0, speed: float = 20) -> No
         state["collapsed"] = not state["collapsed"]
         mission_row.set_visibility(not state["collapsed"])
         canvas.set_collapsed(state["collapsed"])
+        summary.container.move(summary_live if not state["collapsed"] else summary_final_slot)
 
     def refresh_header() -> None:
         display_name = (
@@ -142,7 +146,9 @@ async def run_detail_page(run_id: str, replay: int = 0, speed: float = 20) -> No
 
     def refresh_title() -> None:
         suffix = f" · Replay ×{replay_speed:g}" if is_replay else ""
-        if view.finished:
+        if view.finished and view.status == "failed":
+            title = f"Run stopped{suffix} · ScholarSwarm"
+        elif view.finished:
             title = f"✓ Results ready{suffix} · ScholarSwarm"
         elif view.phase:
             index = PHASE_INDEX.get(view.phase, 0) + 1
@@ -179,7 +185,7 @@ async def run_detail_page(run_id: str, replay: int = 0, speed: float = 20) -> No
                         on_click=lambda: ui.run_javascript("window.print()"),
                     ).props("flat no-caps")
             render_summary(report)
-            with ui.tabs().props("dense no-caps align=justify").classes("w-full") as tabs:
+            with ui.tabs().props("dense no-caps align=justify").classes("w-full ss-tabs-compact") as tabs:
                 top_tab = ui.tab("Top 5")
                 all_tab = ui.tab("All")
                 gaps_tab = ui.tab("Unlock")
@@ -232,6 +238,7 @@ async def run_detail_page(run_id: str, replay: int = 0, speed: float = 20) -> No
         state["collapsed"] = True
         canvas.set_collapsed(True)
         mission_row.set_visibility(False)
+        summary.container.move(summary_final_slot)
         if view.report:
             async def scroll_results() -> None:
                 await ui.run_javascript(

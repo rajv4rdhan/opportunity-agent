@@ -64,23 +64,22 @@ class Composer:
         self.sample_id: str | None = None
 
         with ui.card().classes("ss-card ss-composer w-full").mark("composer"):
-            self.upload = (
-                ui.upload(
-                    multiple=True,
-                    max_files=2,
-                    max_file_size=MAX_UPLOAD_BYTES,
-                    auto_upload=True,
-                    on_upload=self._on_upload,
-                    on_rejected=self._on_rejected,
+            with ui.element("div").classes("ss-dropzone") as self.dropzone:
+                self.upload = (
+                    ui.upload(
+                        multiple=True,
+                        max_files=2,
+                        max_file_size=MAX_UPLOAD_BYTES,
+                        auto_upload=True,
+                        on_upload=self._on_upload,
+                        on_rejected=self._on_rejected,
+                    )
+                    .props("accept=.pdf multiple max-files=2 auto-upload")
+                    .style("position: absolute; inset: 0; opacity: 0;")
                 )
-                .props("accept=.pdf multiple max-files=2 auto-upload")
-                .style("display: none")
-            )
-            self.dropzone = (
-                ui.label("Drop a resume or transcript here, or click to attach a PDF")
-                .classes("ss-dropzone")
-                .on("click", self._pick_files)
-            )
+                ui.label("Drop a resume or transcript here, or click to attach a PDF").style(
+                    "pointer-events: none;"
+                )
             self.attachments = ui.row().classes("w-full flex-wrap gap-2")
             self.text = (
                 ui.textarea(placeholder=PLACEHOLDER)
@@ -89,6 +88,8 @@ class Composer:
                 .mark("composer-text")
             )
             self.live = ui.label("").classes("ss-live-text")
+            with ui.row().classes("w-full items-center justify-between gap-2"):
+                self.helper = ui.label("").classes("ss-small")
             self.text.on("keydown.ctrl.enter", self.submit)
             self.text.on("keydown.meta.enter", self.submit)
 
@@ -101,13 +102,11 @@ class Composer:
                         self.text, on_transcript=self._mark_voice, status_target=self.live
                     )
                     self.counter = ui.label("0 words").classes("ss-small")
-                with ui.row().classes("items-center gap-3"):
-                    self.helper = ui.label("").classes("ss-small")
-                    self.submit_button = (
-                        ui.button("Find scholarships", icon="arrow_forward", on_click=self.submit)
-                        .props("color=primary unelevated no-caps")
-                        .mark("composer-submit")
-                    )
+                self.submit_button = (
+                    ui.button("Find scholarships", icon="arrow_forward", on_click=self.submit)
+                    .props("color=primary unelevated no-caps")
+                    .mark("composer-submit")
+                )
 
         self.hints = ui.row().classes("flex-wrap items-center gap-1 w-full")
 

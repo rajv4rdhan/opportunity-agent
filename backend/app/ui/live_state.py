@@ -147,7 +147,7 @@ def _refresh_edges(view: RunView) -> None:
 
 
 def _update_phases(view: RunView) -> None:
-    if view.finished:
+    if view.finished and view.status == "finished":
         view.phase = PHASES[-1]["id"]
         view.phase_done = {phase["id"] for phase in PHASES}
         return
@@ -330,6 +330,8 @@ def reduce_event(view: RunView, event: Event) -> set[str]:
         view.status = "failed"
         view.live_view_url = None
         view.stats.errors += 1
+        if view.started_at:
+            view.stats.duration_sec = round((event.ts - view.started_at).total_seconds(), 1)
         dirty |= {
             "canvas",
             "phase",

@@ -19,7 +19,7 @@ def _escape(text: str) -> str:
     )
 
 
-def _event(report: FinalReport, name: str, deadline: date, url: str, uid: str) -> list[str]:
+def _event(name: str, deadline: date, url: str, uid: str) -> list[str]:
     end = deadline + timedelta(days=1)
     return [
         "BEGIN:VEVENT",
@@ -56,7 +56,6 @@ def deadlines_ics(report: FinalReport) -> str:
         seen.add(key)
         lines.extend(
             _event(
-                report,
                 opportunity.name,
                 opportunity.deadline,
                 opportunity.official_url or opportunity.application_url or "",

@@ -6,7 +6,7 @@ checkpointer, so an interrupted run can resume after a reload or restart.
 
 ```mermaid
 flowchart LR
-  UI[NiceGUI web UI - Python<br/>upload · live agent board · results] -- in-process calls --> RUN[Runner + LangGraph<br/>SQLite checkpoints]
+  UI[NiceGUI web UI - Python<br/>composer · swarm canvas · replay · results] -- in-process calls --> RUN[Runner + LangGraph<br/>SQLite checkpoints]
   API[FastAPI REST API + /docs] --> RUN
   RUN -- events --> DB[(SQLite events)] -- polled live --> UI
   subgraph SWARM[Agent Swarm — shared blackboard state]
@@ -113,6 +113,36 @@ student's MBA results out of another student's bioinformatics run.
 ## API and UI
 
 The UI imports the same Pydantic models and calls `services/*` directly — no HTTP hop to our own
-API. The run page polls `GET /api/runs/{id}/events` data from SQLite (via the store, in-process)
-every 500 ms, replaying from event 0 on reload. The SSE endpoint serves API clients from the same
-event bus.
+API. The run page polls stored events every 500 ms, replaying from event 0 on reload. The SSE
+endpoint serves API clients from the same event bus.
+
+### UI layer
+
+| Concern | Single source |
+|---|---|
+| Design tokens, layout, motion and print CSS | `app/ui/static/theme.css` |
+| Browser speech recognition | `app/ui/static/voice.js`, `components/voice_input.py` |
+| Coverage hints and document roles | `app/services/intake.py` |
+| Phase grouping, hand-off labels and icon metadata | `app/ui/agents.py` |
+| Event → view reducer, workers, thoughts, phases | `app/ui/live_state.py` |
+| Replay timing | `app/services/replay.py` |
+| Calendar export | `app/services/calendar.py` |
+
+The intake page has one composer (files, text, speech). The run page renders the 12 agents as a
+six-phase swarm canvas with animated hand-off edges and a parallel verifier pool. Its right column
+holds the inline clarifier, the parsed-profile card and Activity / Sources / Graph / Browser tabs.
+When a run finishes the canvas collapses into a one-line summary and the results take over.
+
+### Event enrichment
+
+`AgentCtx` carries an optional worker identity. The `@agent` decorator adds `worker`, `title` and
+`domain` to verifier events, a `counts` map for hand-off labels, and a compact `profile_preview` to
+the Profile Analyst and GitHub Enricher finish events. This keeps the UI from reading LangGraph
+state and makes parallelism visible without another API call.
+
+### Replay and ETA
+
+`services/replay.py` replays stored events with gaps scaled by speed and capped at 1.5 s, so a
+finished run can be shown at 1x, 5x or 20x. `store.median_duration_sec()` supplies the live ETA.
+The print stylesheet exposes only the results, and `services/calendar.py` builds a dependency-free
+`.ics` file with one all-day event per dated opportunity and a 7-day reminder.

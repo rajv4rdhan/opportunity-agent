@@ -1,6 +1,6 @@
 # ScholarSwarm
 
-**AI agents that find your funding.** Upload a resume and transcript, pick your targets, and
+**AI agents that find your funding.** Drop a resume, type a few sentences, or just speak. Then
 watch a swarm of agents search the web, open official pages, verify deadlines and funding with
 quotes, build a knowledge graph, and write a statement of purpose.
 
@@ -109,8 +109,12 @@ uvicorn app.main:app --reload --port 8000
 - App: <http://localhost:8000>
 - API docs: <http://localhost:8000/docs>
 
-Pick a sample profile or upload a PDF, optionally enable **Chaos Mode**, and click
-**Launch Agents**.
+Open the app and use one composer: drop a resume/transcript, type your goals, or press the mic
+(Chrome or Edge; speech recognition needs HTTPS or localhost). Optional details and **Chaos Mode**
+are collapsed underneath. Press **Find scholarships** or `Ctrl/Cmd+Enter`.
+
+Every finished run can be replayed from History or the run summary at 1x, 5x or 20x. This is the
+reliable way to show the whole swarm in a short demo.
 
 ---
 
@@ -151,12 +155,13 @@ changes. `scripts/make_sample_pdfs.py` regenerates any missing files and never o
 
 ```bash
 cd backend
-pytest -q
+pytest -q          # 85 tests
 ```
 
 The suite covers URL normalisation, quote verification, the retry/fallback policy, score and gap
 logic, country/field guards, What-If overrides, state reducers, routing thresholds, graph reuse and
-export, browser ownership, LLM chaos recovery, sample-form merging and the UI event reducer.
+export, browser ownership, LLM chaos recovery, sample-form merging, intake classification, the live
+mission-control reducer, worker identity, calendar export, replay timing and the NiceGUI pages.
 
 ---
 
@@ -168,7 +173,7 @@ The UI calls services in-process; the REST API exists for scripts and judges.
 |---|---|---|
 | GET | `/api/health` | Provider configuration (booleans only) |
 | GET | `/api/samples` | Sample profile names |
-| POST | `/api/runs` | Create a run (multipart: PDFs, sample, form fields, chaos JSON) |
+| POST | `/api/runs` | Create a run (multipart: PDFs, `description`, form fields, chaos JSON) |
 | GET | `/api/runs` | Run history |
 | GET | `/api/runs/{id}` | Status, report, pending questions |
 | GET | `/api/runs/{id}/events` | SSE event stream (`?after=`) |
@@ -177,6 +182,7 @@ The UI calls services in-process; the REST API exists for scripts and judges.
 | POST | `/api/runs/{id}/whatif` | Instant eligibility recalculation (no LLM) |
 | GET | `/api/runs/{id}/report.md` | Full report download |
 | GET | `/api/runs/{id}/sop.md` | SOP download |
+| GET | `/api/runs/{id}/deadlines.ics` | Calendar export for every dated opportunity |
 
 ---
 
@@ -189,7 +195,7 @@ The UI calls services in-process; the REST API exists for scripts and judges.
 | LLM malformed JSON | Instructor re-asks, then fallback model | `retry` event |
 | Hallucinated quote | Quote dropped, confidence lowered | Lower confidence badge |
 | Too few verified results | Supervisor re-plans (up to 3 rounds) | Purple `decision` event, loop edge |
-| Missing profile fields | Clarifier interrupt → resume | Dialog |
+| Missing profile fields | Clarifier interrupt → resume | Inline card with voice answers |
 | Neo4j down | In-memory networkx graph | `fallback` event |
 | GitHub rate limit / no GitHub | Unauthenticated retry → skip enrichment | Skipped node |
 | Expired deadline | Excluded from the top 5 | Grey badge |
@@ -211,11 +217,11 @@ backend/
 │  ├─ core/         llm, http, fallback, events, store, chaos, agent decorator
 │  ├─ models/       Pydantic shapes shared by API, agents and UI
 │  ├─ tools/        pdf, github, search, fetch, browser, graph_store
-│  ├─ services/     matching, runner, report
+│  ├─ services/     intake, matching, runner, report, replay, calendar
 │  ├─ agents/       one file per agent
 │  ├─ graph/        LangGraph build + supervisor routing
 │  ├─ prompts/      markdown prompts (SYSTEM + USER)
-│  └─ ui/           NiceGUI pages and components
+│  └─ ui/           NiceGUI pages, components and static theme.css / voice.js
 ├─ scripts/         check_keys, smoke_graph, make_sample_pdfs, export_diagram, dev mock
 ├─ samples/         four fictional profiles
 └─ tests/
@@ -243,6 +249,20 @@ uvicorn app.main:app --port 8000        # terminal 2
 ```
 
 With the mock, search and page fetches are still real; only extraction and writing are canned.
+
+---
+
+## Screenshots
+
+| Intake | Mission control |
+|---|---|
+| ![Home](docs/screenshots/home-light.png) | ![Mission control](docs/screenshots/mission-control.png) |
+
+| Results | SOP |
+|---|---|
+| ![Results](docs/screenshots/results-light.png) | ![SOP](docs/screenshots/sop.png) |
+
+Dark mode, history and the mobile layouts are in [`docs/screenshots/`](docs/screenshots/).
 
 ---
 

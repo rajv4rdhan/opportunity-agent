@@ -180,6 +180,10 @@ body {
   line-height: 1.5;
 }
 
+.ss-small:empty {
+  display: none;
+}
+
 .ss-mono {
   font-variant-numeric: tabular-nums;
 }
@@ -602,6 +606,16 @@ body {
   display: block;
 }
 
+.ss-tabs-compact .q-tab {
+  min-height: 36px;
+  min-width: 0;
+  padding: 0 7px;
+}
+
+.ss-tabs-compact .q-tab__label {
+  font-size: 11px;
+}
+
 @media (max-width: 700px) {
   .ss-history-meta {
     display: none;
@@ -653,6 +667,7 @@ body {
 
 .ss-composer-toolbar {
   display: flex;
+  width: 100%;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -717,6 +732,7 @@ body {
 }
 
 .ss-dropzone {
+  position: relative;
   width: 100%;
   padding: 10px 12px;
   margin-bottom: 8px;
@@ -727,6 +743,7 @@ body {
   font-size: 12px;
   text-align: center;
   cursor: pointer;
+  overflow: hidden;
   transition: border-color 0.15s var(--ease), color 0.15s var(--ease);
 }
 

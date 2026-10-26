@@ -49,7 +49,7 @@ def render_sop(report: FinalReport) -> None:
 
     with ui.row().classes("w-full flex-col xl:flex-row gap-4 items-start"):
         with ui.element("div").classes("ss-card w-full xl:w-[70%]"):
-            ui.html(_document(sop), sanitize=False).classes("ss-document")
+            ui.html(_document(sop)).classes("ss-document")
         with ui.element("div").classes("ss-card ss-card--tight w-full xl:w-[28%]"):
             ui.label("Critic notes").classes("ss-small")
             if report.critic_notes:

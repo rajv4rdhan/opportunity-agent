@@ -35,6 +35,7 @@ playwright>=1.48
 # ---------- Utilities ----------
 tldextract>=5.1
 python-dateutil>=2.9
+markdown2>=2.5
 
 # ---------- Observability (optional at runtime) ----------
 langfuse>=2.50

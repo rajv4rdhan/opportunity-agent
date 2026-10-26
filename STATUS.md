@@ -1,133 +1,111 @@
-# ScholarSwarm — build status (2026-10-25)
+# ScholarSwarm — build status (2026-10-26)
 
-> Handoff snapshot. The build is complete and every sample profile now has a real-model run.
-> Nothing here contains secrets. `backend/.env` is gitignored.
+> Handoff snapshot. The v2 visual UI, effortless intake, mission control, results and replay are
+> implemented. Everything was run and tested locally in this workspace (the original plan's E2B
+> step was not required by the project owner). Nothing here contains secrets.
 
 ## TL;DR
 
-- Phases 1–9 of `agent-plan.md` are implemented, tested and committed.
-- **54 tests pass.** Neo4j, Tavily, Exa, Jina, Firecrawl, Kernel, GitHub and the LLM are green.
-- Neo4j Aura is working again; `scripts/smoke_graph.py` passes (2 paths, 8 nodes, 10 links).
-- Real-model runs now exist for all four profiles:
-  - `rahul` — verified 2026-10-24 (10 opportunities, top 5, 946-word SOP, $0.099).
-  - `arjun` — 12 opportunities, UK/Australia MBA top 5, 822-word SOP, 648 s, $0.143.
-  - `meera` — 13 opportunities, US robotics/EE PhD top 5, 1,072-word SOP, 592 s, $0.124.
-  - `priya` — 13 opportunities, bioinformatics top 5, 802-word SOP, 610 s, $0.139.
-- Top-source quote check: **15/15 supported** across the three new runs.
-- A chaos run exercises all five injected failures in one run (see below).
+- **The v2 UI is complete:** one composer (resume / text / voice), swarm canvas with hand-off
+  labels and a parallel verifier pool, inline voice-enabled clarifier, results, `.ics`, print and
+  replay at 1× / 5× / 20×.
+- **85 tests pass locally** (`85 passed`), including new intake, worker/hand-off, calendar, replay
+  and NiceGUI page tests.
+- Real-model runs in the current data dir:
+  - **Rahul** (`28cec885bad4`): 10 opportunities, top 5, 694-word SOP, 734 s, $0.254.
+  - **Description-only run** (`b5ffc531ba50`): 12 opportunities, top 5, 772-word SOP, 325 s,
+    $0.102. This run started with no PDF at all and went through the Clarifier.
+- A seeded demo run (`demoresults1`) exists for screenshots and replay. It is clearly demo data.
+- Screenshots are in `docs/screenshots/` (light, dark, mobile, mission control, results, SOP and
+  history).
 
 ---
 
-## Verified state
+## What was built in this pass
 
-### Provider check (`python scripts/check_keys.py`)
-
-| Provider | Status |
+| Area | Status |
 |---|---|
-| LLM (`openai/deepseek-v4.1-flash` via OpenCode Go) | ✅ `OK` |
-| Tavily | ✅ |
-| Exa | ✅ |
-| Jina | ✅ |
-| Firecrawl | ✅ |
-| Kernel | ✅ create + delete |
-| GitHub | ✅ authenticated via `gh` CLI (~50k requests) |
-| Neo4j | ✅ `RETURN 1` |
-| Serper | ⚪ not configured (optional) |
-| Langfuse | ⚪ not configured (optional) |
+| Design system | `theme.css` tokens, Inter, thin header, `.ss-*` components, print and reduced-motion CSS |
+| Intake | One composer; PDFs auto-classified as resume/transcript; typed text; browser speech; coverage hints; `Ctrl/Cmd+Enter` |
+| Optional details | Links, countries, degree, fields, budget, IELTS/TOEFL/GRE, samples and Chaos Mode |
+| Backend intake | `RunForm.description` + `input_modes`; resume OR transcript OR 20-word description OR sample; API field |
+| Profile extraction | Self-description prompt block; spoken-text caveats; document-first facts |
+| Event enrichment | Verifier `worker`/`title`/`domain`; hand-off `counts`; compact `profile_preview` |
+| Mission control | Phase bar, swarm canvas, animated edges, hand-off labels, worker pool, thoughts, supervisor callout |
+| Right column | Inline clarifier with voice, “What the agents understood”, Activity/Sources/Graph/Browser |
+| Results | Deterministic summary, top-5 cards, requirement checklist + quote tooltips, all-opportunities filters, Unlock more, deadlines, SOP |
+| Extras | `.ics` calendar export, print stylesheet, ETA from median completed runs, replay, history replay buttons |
 
-`scripts/smoke_graph.py` also verifies constraints, writes, `explain_paths`, `export` and
-`recent_opportunities`, then removes its own nodes. `--keep` preserves them for inspection.
+### Real acceptance checks
 
-### Tests
+- Resume only → results (Rahul).
+- Description only, no PDFs → Clarifier → results (b5ff).
+- PDFs uploaded in reverse order → roles auto-swapped (Playwright + unit tests).
+- Replay ×20 of the seeded run renders the whole swarm and ends with results.
+- Calendar endpoint returns a valid VCALENDAR with 7-day VALARM reminders.
+- Light, dark, desktop and mobile screenshots reviewed.
+- `prefers-reduced-motion` disables animation; print preview shows results only.
 
-```
-cd backend && .venv/bin/python -m pytest -q
-54 passed
-```
-
-Coverage now includes the earlier suite plus country/field guards, graph reuse and export,
-browser ownership, LLM chaos recovery, sample-form merging, the failed-run UI path and the
-student-name header.
-
-### Real-model runs
-
-| Profile | Run id | Opportunities | Top 5 | SOP | LLM / tools | Retries / fallbacks / errors | Duration | Cost |
-|---|---|---|---|---|---|---|---|---|
-| Rahul (2026-10-24) | `949bd9b5ded0` (prior data dir) | 10 | yes | 946 w | 41 / 99 | 2 / 7 / 4 | 718 s | $0.099 |
-| Arjun | `3c3425497b02` | 12 | yes | 822 w | 64 / 142 | 0 / 14 / 2 | 648 s | $0.143 |
-| Meera | `686ad65ea86e` | 13 | yes | 1,072 w | 47 / 112 | 0 / 3 / 0 | 592 s | $0.124 |
-| Priya | `798949a465cd` | 13 | yes | 802 w | 53 / 109 | 0 / 2 / 0 | 610 s | $0.139 |
-| Meera + all chaos | `a6a3349053c6` | 12 | yes | 791 w | 47 / 103 | 0 / 6 / 0 | 656 s | $0.122 |
-
-Top matches:
-
-- **Arjun (MBA, UK/Australia):** AGSM Global Reach Scholarship; University of Reading Master's
-  Excellence; Brunel MBA Scholarship; GREAT Scholarships (Brunel); Aga Khan Foundation ISP.
-- **Meera (PhD, USA, robotics/EE):** Texas A&M ECE graduate funding; University of Utah robotics
-  funding; Stanford EE PhD; Illinois Information Sciences (CV/ML); NYU Tandon PhD funding.
-- **Priya (MS/PhD, bioinformatics):** Inlaks Scholarship; Iowa State BCB graduate assistantships;
-  CMU MS Quantitative Biology & Bioinformatics; Illinois Bioinformatics MS; Morgan State
-  Bioinformatics MS. Priya's run interrupted on missing target countries and resumed through the
-  API with Germany/Canada/United States.
-
-### Quote check
-
-For each new run's top 5, the first non-empty source quote was checked against the cached page text
-with the same strict `quote_supported()` used in production:
-
-```
-arjun 5/5 · meera 5/5 · priya 5/5  → 15/15
-```
-
-### Chaos Mode
-
-The final live run (`a6a3349053c6`, Meera) had all five switches on at once. Every flag fired
-exactly once and the run still finished with 12 opportunities and a 791-word SOP:
-
-| Flag | Chaos point | Visible recovery |
-|---|---|---|
-| `llm_bad_json` | `llm.first_call` | Amber fallback, same-model retry succeeds |
-| `github_rate_limited` | `github.api` | Amber fallback, unauthenticated request succeeds |
-| `graph_db_down` | `graph.neo4j` | Amber fallback, in-memory graph for this run only |
-| `search_primary_down` | `search.tavily` | Amber fallback, Exa takes over |
-| `fetch_timeout` | `fetch.jina` | Amber fallback, Firecrawl takes over |
-
-The Critic later hit the 16k output cap once and the same-model retry recovered (the sixth amber
-fallback); errors stayed at 0. This also validates the fixed `graph_db_down` check when a Neo4j
-driver was already cached from earlier runs.
-
-### Other acceptance checks
-
-- Interrupt → resume worked in the live Priya run via the REST API (the Clarifier asked only for
-  target countries, then the graph continued normally).
-- No-GitHub profile (`arjun`/`priya`) skips enrichment cleanly; `meera` enriches from GitHub.
-- The failed-run UI path is now covered by a unit test: `run_failed` sets `finished`, `failed`,
-  increments errors and clears the live-browser URL. Previously that branch was unreachable.
-- Student names are persisted during API/UI runs (`runs.student_name`) and shown live/History.
-- Neo4j graph writes, paths, export and country/field-aware reuse were exercised against Aura.
+Voice input was implemented against the browser Web Speech API. It needs **Chrome or Edge** and a
+secure context (`localhost` or HTTPS); the final human check is to allow the microphone and speak.
 
 ---
 
-## What changed today
+## Tests
 
-| Commit | Fix |
-|---|---|
-| `e623fd7` | Failed runs now surface as failed in the UI; resume clicks cannot reopen the dialog; sample form defaults merge with partial input; background tasks held; shared Chromium not closed by one run; GitHub skills deduped case-insensitively. |
-| `f843165` | Graph export includes Project→USES→Skill and Organization→LOCATED_IN→Country; memory export no longer leaks another student via a shared skill. |
-| `cbf4efa` | Student name persisted and shown during live runs and History. |
-| `079770e` | With one model configured for both tiers, chaos now retries the same model instead of aborting the first agent; added Neo4j smoke script. |
-| `3d8a5d7` | Planner keeps every query in the target countries; Verifier rejects opportunities tied elsewhere. |
-| `2588d83` | Deterministic country guard in the Matcher (global/regional/aliased names handled). |
-| `7ed411f` | Clarified that `country` means study destination; regional programmes are accepted. |
-| `a8d9454` | Graph reuse also requires overlapping fields, so another profile's MBA cannot enter a bioinformatics run. |
-| `1d1e05f` | `graph_db_down` fires even when a Neo4j driver is already cached; the fallback is per-run and visible. |
+```bash
+cd backend
+.venv/bin/python -m pytest -q
+# 85 passed
+```
 
-The first live Arjun run ranked a US assistantship and a Singapore MBA for a UK/Australia student.
-That exposed the missing country guard; the fixed run is the one recorded above.
+Coverage now includes the previous suite plus:
+
+- `tests/test_intake.py` — sample PDF classification, coverage hints, word counts.
+- `tests/test_runner.py` — description-only runs, empty rejection, swapped PDF roles, single transcript.
+- `tests/test_agent_decorator.py` — worker identity, counts, profile preview, `GraphInterrupt`.
+- `tests/test_live_state.py` — worker transitions, hand-off labels/expiry, phases, thoughts, snapshots.
+- `tests/test_calendar.py` — CRLF calendar, one event per dated opportunity, reminders.
+- `tests/test_replay.py` — speed scaling and capped idle gaps.
+- `tests/test_ui_pages.py` — home validity, finished-results page, replay page.
 
 ---
 
-## Current configuration (non-secret)
+## Real runs in `backend/data/app.db`
+
+| Profile | Run id | Opportunities | Top 5 | SOP | Duration | Cost |
+|---|---|---|---:|---:|---:|---:|
+| Rahul (sample) | `28cec885bad4` | 10 | 5 | 694 w | 734 s | $0.254 |
+| Description only | `b5ffc531ba50` | 12 | 5 | 772 w | 325 s | $0.102 |
+| Demo seed (screenshots/replay) | `demoresults1` | 2 | 2 | 96 w | 612 s | $0.120 |
+
+Rahul's top 5: Toronto CS graduate funding, SECAI scholarship, DAAD STEM, DAAD master's
+scholarships, Ontario Graduate Scholarship.
+
+Earlier real runs from the previous snapshot (Arjun, Meera, Priya and the all-chaos Meera run)
+remain documented in git history and in the prior STATUS snapshot; they are not in the current
+data dir.
+
+---
+
+## How to run locally
+
+```bash
+cd backend
+source .venv/bin/activate
+
+python scripts/check_keys.py
+python scripts/smoke_graph.py          # optional Neo4j health check
+uvicorn app.main:app --reload --port 8000
+python -m app.cli run samples/rahul    # terminal-only run
+pytest -q
+```
+
+Open <http://localhost:8000>. API docs: <http://localhost:8000/docs>.
+
+---
+
+## Configuration notes
 
 ```dotenv
 MODEL_SMART=openai/deepseek-v4.1-flash
@@ -136,71 +114,28 @@ MODEL_FALLBACK=openai/deepseek-v4.1-flash
 LLM_API_BASE=https://opencode.ai/inference/go/openai/v1
 ```
 
+- Python 3.14.2, NiceGUI 3.18, LangGraph 1.2.
+- `backend/.env` is gitignored. The app reads it through `app/config.py`.
 - The app sends `x-opencode-session: scholarswarm-<run_id>` and `User-Agent: ScholarSwarm/1.0`.
-- The Neo4j Aura host in `.env` resolves and authenticates. Keep the instance awake before a demo;
-  Aura Free pauses after inactivity.
-- Python 3.14.2, NiceGUI 3.18 (`ui.echart`), LangGraph 1.2.
-- `backend/data/app.db` now contains the three 2026-10-25 runs above (not the prior Rahul data dir).
-- `GITHUB_TOKEN` is empty; GitHub auth comes from `gh auth token`.
+- Neo4j Aura Free pauses after inactivity; resume it before a demo.
+- `GITHUB_TOKEN` can be empty when the `gh` CLI is authenticated.
 
 ---
 
 ## Remaining human tasks
 
-1. **Record the 5-minute demo** using the script in `human-plan.md`.
-2. **Push the public GitHub repo** (confirm `.env` is absent).
-3. **Rewrite `docs/notes.md` in your own words** (replace every `[HUMAN: …]`).
-4. Optional: add Langfuse keys for traces; re-run `scripts/export_diagram.py` only if graph edges change.
-
-Before a live demo: open the Aura console and resume the instance, then run
-`python scripts/check_keys.py` and `python scripts/smoke_graph.py`.
+1. Record the 5-minute demo using `human-plan.md` (prepare 2–3 finished runs first).
+2. Push the public GitHub repo and confirm `.env` is absent.
+3. Rewrite `docs/notes.md` in your own words.
+4. Run the voice check in Chrome/Edge: allow the mic, speak, confirm the text appears.
+5. Optional: rotate the E2B key shared in chat; E2B is not used by this local build.
 
 ---
 
-## Resume commands
+## Known limitations
 
-```bash
-cd /workspaces/opportunity-agent/backend
-source .venv/bin/activate
-
-python scripts/check_keys.py
-python scripts/smoke_graph.py                 # optional Neo4j health check
-uvicorn app.main:app --reload --port 8000     # UI + API + /docs
-python -m app.cli run samples/rahul           # terminal-only run
-pytest -q
-```
-
----
-
-## Commits since the previous snapshot
-
-```
-1d1e05f fix: fire graph_db_down before using a cached Neo4j driver
-a8d9454 planner: only reuse graph results that fit this profile's field
-f9cb0a7 matching: treat a region/any target as open rather than a country mismatch
-7ed411f fix: clarify country semantics and allow regional programmes
-2588d83 matching: reject opportunities tied to a country outside the student's targets
-3d8a5d7 prompts: keep research and verification inside the student's target countries
-079770e fix: retry the same model when no distinct LLM fallback is configured
-cbf4efa ui: persist and show the student's name during a run
-f843165 graph: export project skills and organisation countries
-e623fd7 fix: surface failed runs, resume races and sample form defaults
-6b47371 docs: save build status, verified results and resume plan
-```
-
----
-
-## Known limitations / notes
-
-- **Deadlines:** many official pages say “check the faculty/institution” or “applications open in
-  November”; `deadline_text` is shown instead of inventing a date.
-- **Graph paths:** program pages often state themes (“leadership potential”) rather than technical
-  skills, so some top matches have no skill bridge. The Verifier prompt now asks for short canonical
-  `valued_skills`; older reports may still have empty paths and use the deterministic fit reasons.
-- **Verifier output cap:** 16k tokens, max 8 requirements and 8 sources per opportunity.
-- **Critic loop:** stops after `MAX_SOP_REVISIONS=2`; remaining notes are shown in the SOP tab.
-- **Knowledge graph:** Neo4j persists it now. Without Neo4j the in-memory graph is process-local.
-- **Cost:** about $0.12–0.14 per full run at current DeepSeek pricing.
-- **OpenCode Go:** the session header is required; requests without it are rejected.
-- **Dev mock:** `backend/scripts/dev_mock_llm.py` is for offline tests only — never for a demo.
-- **Live browser:** the iframe clears when the run finishes because the Kernel session is closed.
+- Many official pages say “check the faculty/institution”; the UI shows `deadline_text` rather than
+  inventing a date. Dated opportunities only are exported to `.ics`.
+- Voice recognition is browser-provided; Firefox has no `SpeechRecognition`.
+- Replay reads stored events only. A run must be finished or failed before Replay is enabled.
+- The final narrative in `docs/notes.md` is intentionally left for the human author.
