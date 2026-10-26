@@ -12,6 +12,7 @@ Rules:
 - Work experience: total years as a number; count an internship as at most 0.5 years.
 - Keep the student's own wording for achievements and publications.
 - target_* fields, links and budget come from the form values when present.
+- The self-description states the student's goals and preferences; it overrides the resume for targets (countries, degree, fields, budget). Facts like grades come from documents first; use the description only when documents lack them. Spoken text may contain transcription errors (for example "see GPA" means CGPA and "eye-elts" means IELTS); interpret sensibly but never invent numbers.
 
 ## USER
 RESUME:
@@ -20,5 +21,8 @@ RESUME:
 TRANSCRIPT:
 {transcript}
 
-FORM VALUES (these take precedence over the documents):
+SELF-DESCRIPTION (spoken or typed by the student):
+{description}
+
+FORM VALUES (these take precedence over the documents and the description):
 {form}

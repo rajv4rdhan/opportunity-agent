@@ -17,7 +17,9 @@ from app.config import BACKEND_DIR, settings
 from app.core import store
 from app.core.events import emit, get_stats, subscribe
 from app.models.inputs import RunForm
+from app.services.intake import classify_document, word_count
 from app.tools import browser, graph_store
+from app.tools.pdf import extract_text
 from app.core import http
 
 _graph: Any = None
@@ -84,6 +86,30 @@ def _copy_upload(source: Path | None, destination: Path) -> Path | None:
     return destination
 
 
+def _document_kind(path: Path) -> str | None:
+    try:
+        return classify_document(extract_text(Path(path)))
+    except Exception:  # noqa: BLE001 - a broken PDF keeps its caller-assigned role
+        return None
+
+
+def classify_uploads(
+    resume: Path | None, transcript: Path | None
+) -> tuple[Path | None, Path | None]:
+    """Assign two arbitrary PDFs to the resume and transcript roles by their text."""
+    if resume is None and transcript is None:
+        return None, None
+    if resume is not None and transcript is not None:
+        first, second = _document_kind(resume), _document_kind(transcript)
+        if first == "transcript" and second == "resume":
+            return transcript, resume
+        return resume, transcript
+    if resume is not None:
+        return (None, resume) if _document_kind(resume) == "transcript" else (resume, None)
+    assert transcript is not None
+    return (transcript, None) if _document_kind(transcript) == "resume" else (None, transcript)
+
+
 SAMPLE_FIELDS = (
     "github_url",
     "linkedin_url",
@@ -127,6 +153,7 @@ async def create_run(
     """The ONLY way to create a run (used by the REST API and the UI)."""
     run_id = uuid4().hex[:12]
     upload_dir = Path(settings.data_dir) / "uploads" / run_id
+    resume, transcript = classify_uploads(resume, transcript)
     resume_path = _copy_upload(resume, upload_dir / "resume.pdf")
     transcript_path = _copy_upload(transcript, upload_dir / "transcript.pdf")
 
@@ -140,11 +167,11 @@ async def create_run(
         if transcript_path is None and (folder / "transcript.pdf").exists():
             transcript_path = folder / "transcript.pdf"
 
-    if resume_path is None:
-        raise ValueError("A resume PDF or a sample profile is required")
+    if not (resume_path or transcript_path or form.sample or word_count(form.description) >= 20):
+        raise ValueError("Add a resume or describe yourself in a few sentences.")
 
     inputs = {
-        "resume_path": str(resume_path),
+        "resume_path": str(resume_path) if resume_path else None,
         "transcript_path": str(transcript_path) if transcript_path else None,
         "form": form.model_dump(mode="json"),
     }

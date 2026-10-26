@@ -64,6 +64,8 @@ async def _save_upload(upload: UploadFile | None, name: str) -> Path | None:
 
 def _build_form(
     sample: str | None,
+    description: str | None,
+    input_modes: str | None,
     github_url: str | None,
     linkedin_url: str | None,
     other_links: str | None,
@@ -81,20 +83,25 @@ def _build_form(
         chaos = {str(key): bool(value) for key, value in _json(chaos_json, {}).items()}
     except ValidationError as error:
         raise HTTPException(status_code=422, detail=error.errors()) from error
-    return RunForm(
-        sample=sample,
-        github_url=github_url,
-        linkedin_url=linkedin_url,
-        other_links=_csv(other_links),
-        target_countries=_csv(target_countries),
-        target_degree=target_degree,
-        target_fields=_csv(target_fields),
-        nationality=nationality,
-        budget_inr_per_year=budget_inr_per_year,
-        test_scores=scores,
-        notes=notes,
-        chaos=chaos,
-    )
+    try:
+        return RunForm(
+            sample=sample,
+            description=description,
+            input_modes=[mode for mode in _csv(input_modes) if mode in {"resume", "text", "voice"}],
+            github_url=github_url,
+            linkedin_url=linkedin_url,
+            other_links=_csv(other_links),
+            target_countries=_csv(target_countries),
+            target_degree=target_degree,
+            target_fields=_csv(target_fields),
+            nationality=nationality,
+            budget_inr_per_year=budget_inr_per_year,
+            test_scores=scores,
+            notes=notes,
+            chaos=chaos,
+        )
+    except ValidationError as error:
+        raise HTTPException(status_code=422, detail=error.errors()) from error
 
 
 @router.get("/samples")
@@ -108,6 +115,8 @@ async def create_run(
     resume: UploadFile | None = File(None),
     transcript: UploadFile | None = File(None),
     sample: str | None = Form(None),
+    description: str | None = Form(None),
+    input_modes: str | None = Form(None),
     github_url: str | None = Form(None),
     linkedin_url: str | None = Form(None),
     other_links: str | None = Form(None),
@@ -124,6 +133,8 @@ async def create_run(
     transcript_path = await _save_upload(transcript, "transcript.pdf")
     form = _build_form(
         sample,
+        description,
+        input_modes,
         github_url,
         linkedin_url,
         other_links,

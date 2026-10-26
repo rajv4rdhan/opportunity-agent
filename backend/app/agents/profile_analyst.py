@@ -59,12 +59,15 @@ async def profile_analyst(state: dict, ctx: AgentCtx) -> dict:
         transcript_text, _ = await extract_document(ctx, Path(transcript_path))
 
     await ctx.log(f"Read resume: {len(resume_text)} chars; transcript: {len(transcript_text)} chars")
+    if not resume_text and not transcript_text:
+        await ctx.log("Building profile from your description")
     profile = await ctx.llm(
         "profile_extract",
         StudentProfile,
         tier="fast",
         resume=resume_text or "(not provided)",
         transcript=transcript_text or "(not provided)",
+        description=form.get("description") or "(not provided)",
         form=form,
         images=resume_images,
     )
