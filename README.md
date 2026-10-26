@@ -94,7 +94,8 @@ built React app. Set the same environment variables as `backend/.env` in the Nor
 
 When the SPA is hosted separately (for example on Cloudflare Pages), set `CORS_ORIGINS` in the
 backend to a comma-separated list of allowed browser origins. The default includes
-`https://opportunity-agent.pages.dev`, plus the local Vite dev server origins.
+`https://opportunity-agent.pages.dev`, plus the local Vite dev server origins. Set
+`VITE_API_BASE` to the backend origin when building the SPA for that host.
 
 ---
 

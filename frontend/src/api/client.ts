@@ -1,4 +1,5 @@
 import type { Event, FinalReport, MetaResponse, RunDetail, RunSummary } from './types'
+import { apiUrl } from './url'
 
 export class ApiError extends Error {
   status: number
@@ -11,7 +12,7 @@ export class ApiError extends Error {
 }
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, init)
+  const response = await fetch(apiUrl(path), init)
   if (!response.ok) {
     let detail = response.statusText
     try {
@@ -129,19 +130,19 @@ export function whatIf(id: string, overrides: Record<string, unknown>): Promise<
 }
 
 export function eventsUrl(id: string, after = 0): string {
-  return `/api/runs/${encodeURIComponent(id)}/events?after=${after}`
+  return apiUrl(`/api/runs/${encodeURIComponent(id)}/events?after=${after}`)
 }
 
 export function reportUrl(id: string): string {
-  return `/api/runs/${encodeURIComponent(id)}/report.md`
+  return apiUrl(`/api/runs/${encodeURIComponent(id)}/report.md`)
 }
 
 export function sopUrl(id: string): string {
-  return `/api/runs/${encodeURIComponent(id)}/sop.md`
+  return apiUrl(`/api/runs/${encodeURIComponent(id)}/sop.md`)
 }
 
 export function icsUrl(id: string): string {
-  return `/api/runs/${encodeURIComponent(id)}/deadlines.ics`
+  return apiUrl(`/api/runs/${encodeURIComponent(id)}/deadlines.ics`)
 }
 
 export type { Event, FinalReport }

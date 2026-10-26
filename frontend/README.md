@@ -12,3 +12,16 @@ npm run gen:api    # regenerate src/api/schema.d.ts from a running backend
 ```
 
 The backend README at the repository root covers the full setup and architecture.
+
+## API URL
+
+The SPA calls `/api/*` on its own origin by default. To point it at a separately hosted backend,
+copy `.env.example` to `.env` and set the backend origin before building:
+
+```bash
+cp .env.example .env
+# VITE_API_BASE=https://your-backend.example.com
+npm run build
+```
+
+`VITE_API_BASE` is read at build time. Leave it empty when FastAPI serves the build.
