@@ -1,4 +1,4 @@
-"""User input shape, shared by the REST API and the NiceGUI launch form."""
+"""User input shape shared by the REST API and the React intake form."""
 
 from __future__ import annotations
 

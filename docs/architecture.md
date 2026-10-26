@@ -1,14 +1,16 @@
 # Architecture
 
-ScholarSwarm is one Python process. FastAPI serves the API and mounts the NiceGUI UI; both call
-the same service layer. LangGraph runs the agents on a shared blackboard state with a SQLite
+ScholarSwarm has two deployables that become one process in production: a FastAPI backend and a
+React single-page app. FastAPI serves `/api/*` and, when `frontend/dist` exists, the built SPA with
+a deep-link fallback. LangGraph runs the agents on a shared blackboard state with a SQLite
 checkpointer, so an interrupted run can resume after a reload or restart.
 
 ```mermaid
 flowchart LR
-  UI[NiceGUI web UI - Python<br/>composer · swarm canvas · replay · results] -- in-process calls --> RUN[Runner + LangGraph<br/>SQLite checkpoints]
-  API[FastAPI REST API + /docs] --> RUN
-  RUN -- events --> DB[(SQLite events)] -- polled live --> UI
+  UI[React SPA · Vite + TypeScript<br/>composer · swarm canvas · replay · results] -- REST + SSE --> API[FastAPI<br/>/api/*]
+  API --> RUN[Runner + LangGraph<br/>SQLite checkpoints]
+  RUN -- events --> DB[(SQLite events)] -- SSE --> UI
+  API -- static --> DIST[frontend/dist]
   subgraph SWARM[Agent Swarm — shared blackboard state]
     PA[Profile Analyst] --> SUP0{Missing info?}
     SUP0 -- yes --> CL[Clarifier<br/>human-in-the-loop]
@@ -64,6 +66,11 @@ Each agent returns only the keys it updates. The `@agent` decorator in `app/core
 timing, `agent_started` / `agent_finished` / `agent_failed` events, and keeps the graph alive when
 one agent fails. `GraphInterrupt` is re-raised so human-in-the-loop works.
 
+The decorator also enriches events for the UI: verifier events carry `worker`, `title` and
+`domain`; finish events carry list `counts` for hand-off labels; Profile Analyst and GitHub
+Enricher finishes carry a compact `profile_preview`. This keeps the browser from reading LangGraph
+state and makes parallelism visible without another API call.
+
 ## Trust and verification
 
 1. **Quote check** — every `Source.quote` and `Requirement.quote` must be supported by the fetched
@@ -86,7 +93,7 @@ one agent fails. `GraphInterrupt` is re-raised so human-in-the-loop works.
 | LLM malformed JSON | Pydantic validation | Instructor re-ask (2×) → fallback model | `retry` event |
 | Hallucinated quote | quote not in page text | drop quote, lower confidence | confidence badge |
 | Too few results | supervisor count check | re-plan with broader feedback (≤3 rounds) | purple `decision` event |
-| Missing profile info | `missing_fields` | Clarifier interrupt → resume | dialog |
+| Missing profile info | `missing_fields` | Clarifier interrupt → resume | inline card |
 | Neo4j down | connection error | `MemoryStore` (networkx) | `fallback` event |
 | GitHub rate limit / no GitHub | 403 / no URL | unauthenticated retry → skip enrichment | skipped node |
 | Expired deadline | `date < today` | marked expired, excluded from top 5 | grey badge |
@@ -110,39 +117,50 @@ can reuse already-verified opportunities. Reuse is limited to the requested coun
 overlapping fields (programmes with unfilled or explicitly broad fields still pass), which keeps one
 student's MBA results out of another student's bioinformatics run.
 
-## API and UI
+## API and SPA
 
-The UI imports the same Pydantic models and calls `services/*` directly — no HTTP hop to our own
-API. The run page polls stored events every 500 ms, replaying from event 0 on reload. The SSE
-endpoint serves API clients from the same event bus.
+The browser calls the REST API through `frontend/src/api/client.ts`. Live progress uses
+`GET /api/runs/{id}/events` (SSE); replay and tests use `GET /api/runs/{id}/events.json`. Production
+serves `frontend/dist` at `/`, mounts hashed assets at `/assets`, returns `index.html` for deep
+links, and keeps `/api/*` JSON (unknown API routes return 404 JSON). During development Vite proxies
+`/api` to uvicorn.
 
-### UI layer
+New SPA-facing models in `app/models/api.py` are `RunSummary`, `RunDetail`, `SampleInfo`,
+`ChaosPoint` and `MetaResponse`. `app/api/meta.py` supplies providers, samples, chaos captions and
+the median duration. Chaos labels/captions live in `app/core/chaos.py`; sample descriptions live in
+`app/services/samples.py`.
+
+### Frontend layer
 
 | Concern | Single source |
 |---|---|
-| Design tokens, layout, motion and print CSS | `app/ui/static/theme.css` |
-| Browser speech recognition | `app/ui/static/voice.js`, `components/voice_input.py` |
-| Coverage hints and document roles | `app/services/intake.py` |
-| Phase grouping, hand-off labels and icon metadata | `app/ui/agents.py` |
-| Event → view reducer, workers, thoughts, phases | `app/ui/live_state.py` |
-| Replay timing | `app/services/replay.py` |
-| Calendar export | `app/services/calendar.py` |
+| Generated API types | `frontend/src/api/schema.d.ts` (openapi-typescript) |
+| HTTP calls | `frontend/src/api/client.ts` |
+| Server state | `frontend/src/api/queries.ts` |
+| Event → view reducer | `frontend/src/state/runReducer.ts` |
+| Live stream / replay | `frontend/src/state/useRunStream.ts`, `useReplay.ts` |
+| Agent metadata, edges and coordinates | `frontend/src/swarm/agents.ts` |
+| Canvas and nodes | `frontend/src/swarm/` (React Flow) |
+| Coverage hints and countries | `frontend/src/lib/coverage.ts` |
+| Browser speech | `frontend/src/lib/speech.ts` |
+| Design tokens and print CSS | `frontend/src/styles/globals.css` |
 
-The intake page has one composer (files, text, speech). The run page renders the 12 agents as a
-six-phase swarm canvas with animated hand-off edges and a parallel verifier pool. Its right column
-holds the inline clarifier, the parsed-profile card and Activity / Sources / Graph / Browser tabs.
-When a run finishes the canvas collapses into a one-line summary and the results take over.
+The home page is one centered composer (files, text, speech). The run page renders the 12 agents
+as a six-phase canvas with animated hand-off edges and a parallel verifier pool; its right column
+holds the inline clarifier, parsed profile, activity, sources, graph and browser. When a run
+finishes, results lead and the swarm moves into a collapsed “How the swarm worked” section.
 
-### Event enrichment
+## Replay and ETA
 
-`AgentCtx` carries an optional worker identity. The `@agent` decorator adds `worker`, `title` and
-`domain` to verifier events, a `counts` map for hand-off labels, and a compact `profile_preview` to
-the Profile Analyst and GitHub Enricher finish events. This keeps the UI from reading LangGraph
-state and makes parallelism visible without another API call.
+The browser owns replay timing (`frontend/src/state/useReplay.ts`): gaps are scaled by speed and
+capped at 1.5 s, so a finished run can be shown at 1×, 5× or 20×. `store.median_duration_sec()`
+supplies the live ETA. The print stylesheet stacks all result tabs, hides navigation and buttons,
+and `services/calendar.py` builds a dependency-free `.ics` file with one all-day event per dated
+opportunity and a 7-day reminder.
 
-### Replay and ETA
+## Tests
 
-`services/replay.py` replays stored events with gaps scaled by speed and capped at 1.5 s, so a
-finished run can be shown at 1x, 5x or 20x. `store.median_duration_sec()` supplies the live ETA.
-The print stylesheet exposes only the results, and `services/calendar.py` builds a dependency-free
-`.ics` file with one all-day event per dated opportunity and a 7-day reminder.
+- **Backend:** `pytest -q` — 70 tests. Includes API meta/events/SPA contracts.
+- **Unit:** `npm test` — reducer, coverage, replay timing, formatting (26 tests).
+- **E2E:** `npx playwright test` — mocked API flows and layout invariants on 1440, 1280, 1024,
+  390 and dark mode, plus screenshot generation.

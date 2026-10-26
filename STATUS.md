@@ -1,75 +1,47 @@
-# ScholarSwarm — build status (2026-10-26)
+# ScholarSwarm — build status (2026-10-26, v3)
 
-> Handoff snapshot. The v2 visual UI, effortless intake, mission control, results and replay are
-> implemented. Everything was run and tested locally in this workspace (the original plan's E2B
-> step was not required by the project owner). Nothing here contains secrets.
+> Handoff snapshot for the React rebuild. Everything was run and tested locally, as requested;
+> E2B is not used by this build. No secrets are included.
 
 ## TL;DR
 
-- **The v2 UI is complete:** one composer (resume / text / voice), swarm canvas with hand-off
-  labels and a parallel verifier pool, inline voice-enabled clarifier, results, `.ics`, print and
-  replay at 1× / 5× / 20×.
-- **85 tests pass locally** (`85 passed`), including new intake, worker/hand-off, calendar, replay
-  and NiceGUI page tests.
-- Real-model runs in the current data dir:
-  - **Rahul** (`28cec885bad4`): 10 opportunities, top 5, 694-word SOP, 734 s, $0.254.
-  - **Description-only run** (`b5ffc531ba50`): 12 opportunities, top 5, 772-word SOP, 325 s,
-    $0.102. This run started with no PDF at all and went through the Clarifier.
-- A seeded demo run (`demoresults1`) exists for screenshots and replay. It is clearly demo data.
-- Screenshots are in `docs/screenshots/` (light, dark, mobile, mission control, results, SOP and
-  history).
+- **The React UI is complete and is now the only UI.** FastAPI serves the built SPA from
+  `frontend/dist`; NiceGUI has been removed.
+- **Backend: 70 tests pass.** **Frontend: 26 Vitest tests pass.** **Playwright: 116 passed,
+  14 skipped** (the skipped ones are screenshot jobs for the two non-curated viewports).
+- The swarm canvas uses React Flow with the binding coordinates: no overlapping nodes, visible
+  hand-off labels, a parallel verifier pool and a mobile timeline below 1024px.
+- Results lead with a deterministic summary, five match cards, requirement quotes, filters,
+  Unlock more (What-If), deadlines with `.ics`, a printable view and the SOP.
+- Every run can be replayed at 1× / 5× / 20× from History or the run header.
 
----
-
-## What was built in this pass
+## What changed in v3
 
 | Area | Status |
 |---|---|
-| Design system | `theme.css` tokens, Inter, thin header, `.ss-*` components, print and reduced-motion CSS |
-| Intake | One composer; PDFs auto-classified as resume/transcript; typed text; browser speech; coverage hints; `Ctrl/Cmd+Enter` |
-| Optional details | Links, countries, degree, fields, budget, IELTS/TOEFL/GRE, samples and Chaos Mode |
-| Backend intake | `RunForm.description` + `input_modes`; resume OR transcript OR 20-word description OR sample; API field |
-| Profile extraction | Self-description prompt block; spoken-text caveats; document-first facts |
-| Event enrichment | Verifier `worker`/`title`/`domain`; hand-off `counts`; compact `profile_preview` |
-| Mission control | Phase bar, swarm canvas, animated edges, hand-off labels, worker pool, thoughts, supervisor callout |
-| Right column | Inline clarifier with voice, “What the agents understood”, Activity/Sources/Graph/Browser |
-| Results | Deterministic summary, top-5 cards, requirement checklist + quote tooltips, all-opportunities filters, Unlock more, deadlines, SOP |
-| Extras | `.ics` calendar export, print stylesheet, ETA from median completed runs, replay, history replay buttons |
-
-### Real acceptance checks
-
-- Resume only → results (Rahul).
-- Description only, no PDFs → Clarifier → results (b5ff).
-- PDFs uploaded in reverse order → roles auto-swapped (Playwright + unit tests).
-- Replay ×20 of the seeded run renders the whole swarm and ends with results.
-- Calendar endpoint returns a valid VCALENDAR with 7-day VALARM reminders.
-- Light, dark, desktop and mobile screenshots reviewed.
-- `prefers-reduced-motion` disables animation; print preview shows results only.
-
-Voice input was implemented against the browser Web Speech API. It needs **Chrome or Edge** and a
-secure context (`localhost` or HTTPS); the final human check is to allow the microphone and speak.
-
----
+| Stack | Vite + React 19 + TypeScript strict + Tailwind v4 + shadcn/ui + React Flow |
+| Design | Tokens in `frontend/src/styles/globals.css`, container-aligned shell, light/dark/system |
+| Home | Centered composer; PDF drop, typed text, browser speech, coverage hints, samples, Advanced sheet |
+| Live run | Run header, six-phase stepper, KPI strip, swarm canvas, verifier pool, inline clarifier |
+| Panels | Profile, Activity (filter + jump-to-latest), Sources, Graph, Browser, equal-height rows |
+| Results | Summary, MatchCards, requirement quotes, All table, Unlock more, Deadlines, SOP |
+| Replay | Browser-side timing, 1× / 5× / 20×, restart, exit, History actions |
+| API | `GET /api/meta`, `GET /api/runs/{id}/events.json`, typed run summaries/details |
+| Production | Static `/assets`, SPA fallback with `index.html`, JSON 404s for `/api/*` |
+| Removed | `backend/app/ui/`, NiceGUI, markdown2, Python replay service, old UI tests |
 
 ## Tests
 
 ```bash
-cd backend
-.venv/bin/python -m pytest -q
-# 85 passed
+cd backend && .venv/bin/python -m pytest -q        # 70 passed
+cd frontend && npm test                            # 26 passed
+cd frontend && npx playwright test                 # 116 passed, 14 skipped
 ```
 
-Coverage now includes the previous suite plus:
-
-- `tests/test_intake.py` — sample PDF classification, coverage hints, word counts.
-- `tests/test_runner.py` — description-only runs, empty rejection, swapped PDF roles, single transcript.
-- `tests/test_agent_decorator.py` — worker identity, counts, profile preview, `GraphInterrupt`.
-- `tests/test_live_state.py` — worker transitions, hand-off labels/expiry, phases, thoughts, snapshots.
-- `tests/test_calendar.py` — CRLF calendar, one event per dated opportunity, reminders.
-- `tests/test_replay.py` — speed scaling and capped idle gaps.
-- `tests/test_ui_pages.py` — home validity, finished-results page, replay page.
-
----
+The Playwright suite runs five projects: 1440, 1280, 1024, 390 and 1440 dark. It includes layout
+invariants (no horizontal scroll, aligned containers, equal rows, no overlapping nodes, edges
+attached, readable canvas zoom, no clipped text, 32px mobile tap targets), mocked API flows,
+Ctrl+Enter, Escape, the failed state and screenshot generation.
 
 ## Real runs in `backend/data/app.db`
 
@@ -78,64 +50,52 @@ Coverage now includes the previous suite plus:
 | Rahul (sample) | `28cec885bad4` | 10 | 5 | 694 w | 734 s | $0.254 |
 | Description only | `b5ffc531ba50` | 12 | 5 | 772 w | 325 s | $0.102 |
 | Demo seed (screenshots/replay) | `demoresults1` | 2 | 2 | 96 w | 612 s | $0.120 |
+| Deliberately failed (error QA) | `79715358a30b` | — | — | — | — | — |
 
-Rahul's top 5: Toronto CS graduate funding, SECAI scholarship, DAAD STEM, DAAD master's
-scholarships, Ontario Graduate Scholarship.
-
-Earlier real runs from the previous snapshot (Arjun, Meera, Priya and the all-chaos Meera run)
-remain documented in git history and in the prior STATUS snapshot; they are not in the current
-data dir.
-
----
+Description-only runs go through the Clarifier and start with no PDF at all. `demoresults1` is
+clearly seeded demo data used by the screenshot and replay tests.
 
 ## How to run locally
 
 ```bash
-cd backend
-source .venv/bin/activate
+# Development (two terminals)
+cd backend && .venv/bin/uvicorn app.main:app --reload --port 8000
+cd frontend && npm run dev
 
-python scripts/check_keys.py
-python scripts/smoke_graph.py          # optional Neo4j health check
-uvicorn app.main:app --reload --port 8000
-python -m app.cli run samples/rahul    # terminal-only run
-pytest -q
+# Production (one process)
+cd frontend && npm run build
+cd backend && .venv/bin/uvicorn app.main:app --port 8000
 ```
 
-Open <http://localhost:8000>. API docs: <http://localhost:8000/docs>.
+- Development UI: <http://localhost:5173>
+- Production UI: <http://localhost:8000>
+- API docs: <http://localhost:8000/docs>
 
----
+`frontend/dist` is gitignored; build it before using the single-process mode.
 
-## Configuration notes
+## Screenshots
 
-```dotenv
-MODEL_SMART=openai/deepseek-v4.1-flash
-MODEL_FAST=openai/deepseek-v4.1-flash
-MODEL_FALLBACK=openai/deepseek-v4.1-flash
-LLM_API_BASE=https://opencode.ai/inference/go/openai/v1
-```
+`docs/screenshots/` now contains the React UI only:
 
-- Python 3.14.2, NiceGUI 3.18, LangGraph 1.2.
-- `backend/.env` is gitignored. The app reads it through `app/config.py`.
-- The app sends `x-opencode-session: scholarswarm-<run_id>` and `User-Agent: ScholarSwarm/1.0`.
-- Neo4j Aura Free pauses after inactivity; resume it before a demo.
-- `GITHUB_TOKEN` can be empty when the `gh` CLI is authenticated.
+- `home-*`, `home-with-files-*`
+- `run-mid-*`, `run-finished-matches-*`, `run-finished-unlock-*`, `run-finished-sop-*`
+- `history-*`
 
----
+Each in `desktop-1440`, `desktop-1440-dark` and `mobile-390`.
 
 ## Remaining human tasks
 
 1. Record the 5-minute demo using `human-plan.md` (prepare 2–3 finished runs first).
 2. Push the public GitHub repo and confirm `.env` is absent.
 3. Rewrite `docs/notes.md` in your own words.
-4. Run the voice check in Chrome/Edge: allow the mic, speak, confirm the text appears.
-5. Optional: rotate the E2B key shared in chat; E2B is not used by this local build.
-
----
+4. Run the voice check in Chrome/Edge: allow the mic, speak, confirm the text lands in the
+   composer and the clarifier.
+5. Optional: rotate the E2B key shared in chat; E2B is not used by this build.
 
 ## Known limitations
 
+- Voice recognition is browser-provided; Firefox does not expose `SpeechRecognition`.
+- Replay reads stored events only; a run must be finished or failed before Replay is enabled.
 - Many official pages say “check the faculty/institution”; the UI shows `deadline_text` rather than
-  inventing a date. Dated opportunities only are exported to `.ics`.
-- Voice recognition is browser-provided; Firefox has no `SpeechRecognition`.
-- Replay reads stored events only. A run must be finished or failed before Replay is enabled.
+  inventing a date. Only dated opportunities are exported to `.ics`.
 - The final narrative in `docs/notes.md` is intentionally left for the human author.
