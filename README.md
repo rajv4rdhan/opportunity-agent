@@ -1,36 +1,101 @@
 # ScholarSwarm
 
-**AI agents that find your funding.** Drop a resume, type a few sentences, or just speak. Then
-watch a swarm of agents search the web, open official pages, verify deadlines and funding with
-quotes, build a knowledge graph, and write a statement of purpose.
+**Find the scholarships you actually qualify for.** Drop a resume, type a few sentences, or just
+speak. A swarm of AI agents reads your profile, searches the web, opens official pages, checks
+every rule against you with a verbatim quote, ranks your best matches and drafts your statement of
+purpose — and you can watch every step live.
 
-Production is one Python process: FastAPI serves the API and the built React SPA from `frontend/dist`.
-Development uses Vite on port 5173 with a proxy to uvicorn on port 8000.
+| Intake | Live run | Results |
+|---|---|---|
+| ![Home](docs/screenshots/home-desktop-1440.png) | ![Live run](docs/screenshots/run-mid-desktop-1440.png) | ![Results](docs/screenshots/run-finished-matches-desktop-1440.png) |
 
 ---
 
-## What the swarm does
+## Highlights
 
-| Agent | Job |
+- **A real agent team, not a chatbot.** Eleven agents with one job each, coordinated by a
+  supervisor through a shared memory. Verifiers run in parallel; the supervisor re-plans when
+  results are thin; the SOP writer and critic loop until the draft holds up.
+- **Every fact has a receipt.** Deadlines, funding and eligibility rules come from official pages
+  and carry the exact quote and link. Quotes that cannot be found on the page are dropped.
+- **Three ways in.** Upload a resume or transcript, write a few lines, or talk (browser speech
+  recognition). Mix them freely.
+- **Recovers on its own.** Search, page fetching, the LLM and the graph store all have fallbacks,
+  and every recovery is shown in the live transcript. Chaos Mode injects failures on purpose.
+- **Replay any run** at 1×, 5× or 20× — handy for demos.
+
+---
+
+## System architecture
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/system-architecture-dark.webp">
+  <img alt="System architecture: the student's resume, text or voice goes to the React web UI, which talks to FastAPI over REST and receives live events over SSE. FastAPI hands work to the Runner, which drives the LangGraph agent swarm and stores runs, events and checkpoints in SQLite. The swarm calls the LLM via LiteLLM, web research (search, fetch and browser), the GitHub API and the Neo4j knowledge graph." src="docs/images/system-architecture-light.webp">
+</picture>
+
+| Layer | What it is |
 |---|---|
-| **Profile Analyst** | Resume + transcript PDFs + form → structured `StudentProfile` |
-| **Clarifier** | Pauses the graph and asks you for critical missing fields (human-in-the-loop) |
-| **GitHub Enricher** | Mines public repositories for skills and projects that are not on the resume |
-| **Planner** | Designs 6–10 targeted search queries; re-plans when results are weak |
-| **Scout** | Searches Tavily → Exa → Serper with visible fallbacks |
-| **Verifiers** (parallel) | Fetches each page (cache → Jina → Firecrawl → cloud browser), extracts requirements with verbatim quotes, checks eligibility |
-| **Matcher** | Deterministic scoring, gaps, and writes everything to Neo4j (or in-memory networkx) |
-| **Supervisor** | Decides whether to re-plan or proceed, and explains the decision in the event feed |
-| **Ranker** | Top 5 with explanations grounded in knowledge-graph paths |
-| **SOP Writer + Critic** | Drafts an SOP, fact-checks it against the profile, and revises |
+| **Web UI** | React + Vite + TypeScript SPA (Tailwind v4, shadcn/ui, React Flow, TanStack Query). Receives live agent events over Server-Sent Events. |
+| **API** | FastAPI. Serves `/api/*` and, in production, the built SPA from `frontend/dist`. |
+| **Runner** | Starts, streams, interrupts and resumes LangGraph runs. |
+| **Agent swarm** | LangGraph state graph with a shared "blackboard" state and SQLite checkpoints. |
+| **LLM** | Called through LiteLLM + Instructor (validated structured output). Requests are **routed through Jev**. |
+| **Web research** | Search (Tavily → Exa → Serper) and page fetching (cache → Jina → Firecrawl → browser). The browser step uses the **Kernel browser MCP** (cloud browser with a live view). |
+| **Knowledge graph** | Neo4j (AuraDB), with an in-memory networkx fallback. |
+| **Storage** | SQLite for runs, events, HTTP cache and LangGraph checkpoints. |
+| **Hosting** | Deployed on **Northflank**. |
 
-Every fact shown in the UI carries a source URL and a quote. Every failure is visible: retries,
-fallbacks, rejected URLs and chaos injections all appear as events.
+---
 
-The React UI renders the agents as a six-phase flow with a live verifier pool, a parallel activity
-feed, sources, the knowledge graph and the live browser. Finished runs lead with results: matches,
-all opportunities, an instant What-If, deadlines and the SOP. Every run can be replayed at 1×, 5×
-or 20×.
+## How the agents work together
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/agent-teams-dark.webp">
+  <img alt="Agent teams: the Supervisor coordinates four teams through a shared memory of profile, results and notes. Understand team: Profile Analyst reads your resume, Clarifier asks what is missing, GitHub Enricher finds your projects. Research team: Planner plans the search, Scout searches the web, and parallel Verifiers check each page. Decision team: Matcher checks eligibility, Ranker picks the top 5. Writing team: SOP Writer drafts the application and the Critic fact-checks it, in a loop." src="docs/images/agent-teams-light.webp">
+</picture>
+
+| Team | Agent | Job |
+|---|---|---|
+| **Understand** | Profile Analyst | Resume + transcript + your words → a structured profile |
+| | Clarifier | Pauses the run and asks you for anything critical that is missing (human-in-the-loop) |
+| | GitHub Enricher | Finds projects and skills your resume forgot |
+| **Research** | Planner | Writes targeted searches for your degree, field and countries; re-plans when results are weak |
+| | Scout | Searches the web with provider fallback |
+| | Verifiers (parallel) | Open each official page, extract rules with verbatim quotes and check them against you |
+| **Decision** | Matcher | Deterministic eligibility, scoring and gaps; writes everything to the knowledge graph |
+| | Ranker | Picks your top 5 and explains why, grounded in graph paths |
+| **Writing** | SOP Writer | Drafts a statement of purpose for your best match |
+| | Critic | Fact-checks the draft against your profile and sends it back until it holds up |
+| **Coordination** | Supervisor | Reads the shared memory and decides what runs next — re-plan, continue or finish |
+
+Every agent writes to the shared memory, and every action becomes an event that the UI shows live:
+the swarm map lights up, hand-offs animate between agents, verifier chips fill in, and the
+transcript records each decision and recovery.
+
+---
+
+## Integrations
+
+### Jev — LLM routing
+
+All model calls go through LiteLLM, and the requests are routed through **Jev**. Configure it in
+`backend/.env`:
+
+```dotenv
+JEV_API_KEY=...
+JEV_BASE_URL=...
+```
+
+### Kernel browser MCP — the last-resort fetcher
+
+When a page is JavaScript-heavy or blocks plain fetchers, verifiers open it in a cloud browser
+through the **Kernel browser MCP**. The run page embeds the browser's live view, so you can watch
+an agent read the page. Set `KERNEL_API_KEY` in `backend/.env`.
+
+### Northflank — hosting
+
+ScholarSwarm is hosted on **Northflank** as a single service: FastAPI serves both the API and the
+built React app. Set the same environment variables as `backend/.env` in the Northflank service.
 
 ---
 
@@ -38,10 +103,10 @@ or 20×.
 
 ### 1. Requirements
 
-- Python 3.11 or newer (the checked version is 3.14)
+- Python 3.11 or newer
 - Node.js 20 or newer
-- API keys: one LLM provider (or any OpenAI-compatible gateway), Tavily, Kernel
-- Optional: Exa, Serper, Firecrawl, Jina, Neo4j AuraDB, Langfuse
+- API keys: an LLM provider or OpenAI-compatible gateway, Tavily, Kernel
+- Optional: Jev, Exa, Serper, Firecrawl, Jina, Neo4j AuraDB, Langfuse
 
 ### 2. Install
 
@@ -56,12 +121,6 @@ cd ../frontend
 npm install
 ```
 
-On a fresh Linux machine, Chromium may need system libraries:
-
-```bash
-backend/.venv/bin/playwright install-deps chromium
-```
-
 ### 3. Configure
 
 ```bash
@@ -73,74 +132,72 @@ Fill in `backend/.env`. At minimum:
 ```dotenv
 MODEL_SMART=openai/deepseek-v4.1-flash
 MODEL_FAST=openai/deepseek-v4.1-flash
-MODEL_FALLBACK=openai/deepseek-v4.1-flash
-LLM_API_BASE=https://opencode.ai/inference/go/openai/v1
+LLM_API_BASE=...
 LLM_API_KEY=...
+
+JEV_API_KEY=...
+JEV_BASE_URL=...
 
 TAVILY_API_KEY=...
 KERNEL_API_KEY=...
-# Optional: EXA_API_KEY, FIRECRAWL_API_KEY, JINA_API_KEY, NEO4J_*, LANGFUSE_*
+# Optional: EXA_API_KEY, SERPER_API_KEY, FIRECRAWL_API_KEY, JINA_API_KEY, NEO4J_*, LANGFUSE_*
 ```
 
-`LLM_API_BASE` is any OpenAI-compatible endpoint. For **OpenCode Go**, use
-`https://opencode.ai/inference/go/openai/v1` with the key from your Go subscription: the app
-adds the required `x-opencode-session` header and a client user agent automatically.
+GitHub needs no key: the app uses `GITHUB_TOKEN` if present, then `gh auth token`, then
+unauthenticated requests.
 
-If you leave `LLM_API_BASE` empty, use a native LiteLLM model string (`anthropic/...`,
-`openai/...`, `gemini/...`) and the matching native key.
-
-GitHub needs no key: the app uses `GITHUB_TOKEN` from the environment if present, then the
-`gh auth token` login, then unauthenticated requests (60/hour).
-
-### 4. Verify every provider
+### 4. Check your keys
 
 ```bash
 cd backend
-.venv/bin/python scripts/check_keys.py
-```
-
-It prints one line per provider and never prints a key. Required providers must be green.
-
-If Neo4j is configured, verify the graph layer with a self-cleaning smoke test:
-
-```bash
-.venv/bin/python scripts/smoke_graph.py
+.venv/bin/python scripts/check_keys.py      # one line per provider, never prints a key
+.venv/bin/python scripts/smoke_graph.py     # optional: Neo4j self-cleaning smoke test
 ```
 
 ### 5. Run in development
-
-Two terminals:
 
 ```bash
 # terminal 1 — API
 cd backend
 .venv/bin/uvicorn app.main:app --reload --port 8000
 
-# terminal 2 — React
+# terminal 2 — web UI
 cd frontend
 npm run dev
 ```
 
-- UI: <http://localhost:5173>
+- UI: <http://localhost:5173> (Vite proxies `/api` to uvicorn)
 - API docs: <http://localhost:8000/docs>
 
-Vite proxies `/api` to uvicorn. Drop a resume/transcript, type your goals, or press the mic
-(Chrome or Edge; speech recognition needs HTTPS or localhost). Optional details and **Chaos Mode**
-are in **Advanced**. Press **Find scholarships** or `Ctrl/Cmd+Enter`.
+Voice input needs Chrome or Edge, on HTTPS or localhost.
 
-### 6. Run the production build
+### 6. Production build
 
 ```bash
-cd frontend
-npm run build
-
-cd ../backend
-.venv/bin/uvicorn app.main:app --port 8000
+cd frontend && npm run build
+cd ../backend && .venv/bin/uvicorn app.main:app --port 8000
 ```
 
-Open <http://localhost:8000>. FastAPI serves the SPA at `/` and deep links such as
-`/runs/<id>`; API routes stay under `/api`, and unknown API paths return JSON 404s. If
-`frontend/dist` is missing, `/` explains how to build it.
+Open <http://localhost:8000>. FastAPI serves the SPA at `/` and deep links such as `/runs/<id>`.
+
+---
+
+## Using it
+
+1. **Start a search.** Type, speak or attach a PDF in the composer — or pick one of the sample
+   students (Rahul, Priya, Arjun, Meera), or press shuffle for a random one. The chips under the
+   composer show which facts the agents have picked up. Press **Find scholarships** or
+   `Ctrl/Cmd + Enter`.
+2. **Watch the swarm.** The run page shows the phase track, the agent map with live hand-offs and
+   the parallel verifier pool, an agent transcript, live counters, your parsed profile, sources,
+   the live browser and the knowledge graph. If the Clarifier needs a detail, answer inline (voice
+   works too).
+3. **Read your dossier.** Results open as one document with a table of contents: summary, top
+   matches with requirement checklists and quotes, all opportunities, **Unlock more** (what one
+   test score or grade change would open), deadlines with calendar export, and the SOP.
+4. **Replay** any run from History or the run header.
+
+**Advanced** (under the composer) adds optional links, preferences and **Chaos Mode**.
 
 ---
 
@@ -148,80 +205,10 @@ Open <http://localhost:8000>. FastAPI serves the SPA at `/` and deep links such 
 
 ```bash
 cd backend
-
-# Full swarm on a sample profile
-.venv/bin/python -m app.cli run samples/rahul
-
-# Same, with chaos flags
+.venv/bin/python -m app.cli run samples/rahul                                   # full swarm
 .venv/bin/python -m app.cli run samples/rahul --chaos search_primary_down,fetch_timeout
-
-# One agent plus its prerequisites
-.venv/bin/python -m app.cli agent profile_analyst samples/rahul
-.venv/bin/python -m app.cli agent verifier samples/rahul
+.venv/bin/python -m app.cli agent verifier samples/rahul                        # one agent
 ```
-
-The full run prints every event and finishes with the top 5, deadlines, source URLs and SOP length.
-
----
-
-## Samples
-
-`backend/samples/{rahul,priya,arjun,meera}/` each contain a fictional resume, transcript and
-`form.json`:
-
-- **rahul** — final-year B.Tech CSE, MS in Canada/Germany/Singapore, no IELTS
-- **priya** — B.Sc Biotechnology, MS/PhD bioinformatics, no GitHub, any country
-- **arjun** — B.Com + 2 years work experience, MBA in the UK/Australia
-- **meera** — B.Tech ECE, PhD robotics in the USA, GRE 322 / TOEFL 108
-
-The samples exist to prove there is no hardcoding: a different profile works with zero code
-changes. `scripts/make_sample_pdfs.py` regenerates any missing files and never overwrites yours.
-
----
-
-## Tests
-
-```bash
-cd backend
-.venv/bin/python -m pytest -q          # 70 backend tests
-
-cd ../frontend
-npm test                              # 26 Vitest unit tests
-npx playwright test                   # Playwright across 5 screen projects
-```
-
-The backend suite covers URL normalisation, quote verification, the retry/fallback policy, score
-and gap logic, country/field guards, What-If overrides, routing thresholds, graph reuse and export,
-browser ownership, LLM chaos recovery, sample-form merging, document classification, worker
-identity, calendar export and SPA serving.
-
-The frontend suite covers the event reducer, coverage hints, replay timing, formatting, the
-composer, every page flow and the layout invariants (no overlap, attached edges, equal rows,
-container alignment, no clipped text, readable canvas zoom and 32px mobile tap targets) at
-1440, 1280, 1024, 390 and dark mode.
-
----
-
-## REST API
-
-The React UI calls this API over HTTP. See `/docs` for the generated schema.
-
-| Method | Path | Purpose |
-|---|---|---|
-| GET | `/api/health` | Provider configuration (booleans only) |
-| GET | `/api/meta` | Providers, samples, chaos captions, median duration |
-| GET | `/api/samples` | Sample profile names |
-| POST | `/api/runs` | Create a run (multipart: PDFs, `description`, form fields, chaos JSON) |
-| GET | `/api/runs` | Typed run summaries |
-| GET | `/api/runs/{id}` | Typed status, report, pending questions |
-| GET | `/api/runs/{id}/events` | SSE event stream (`?after=`) |
-| GET | `/api/runs/{id}/events.json` | Stored events for replay and fixtures |
-| POST | `/api/runs/{id}/resume` | Answer a Clarifier interrupt |
-| GET | `/api/runs/{id}/graph` | Knowledge-graph nodes and links |
-| POST | `/api/runs/{id}/whatif` | Instant eligibility recalculation (no LLM) |
-| GET | `/api/runs/{id}/report.md` | Full report download |
-| GET | `/api/runs/{id}/sop.md` | SOP download |
-| GET | `/api/runs/{id}/deadlines.ics` | Calendar export for every dated opportunity |
 
 ---
 
@@ -229,96 +216,110 @@ The React UI calls this API over HTTP. See `/docs` for the generated schema.
 
 | Failure | Recovery | What you see |
 |---|---|---|
-| Search provider down or empty | Next provider (Tavily → Exa → Serper) | Amber `fallback` event |
+| Search provider down or empty | Next provider (Tavily → Exa → Serper) | Fallback event |
 | Page blocked / JS-only / timeout | Jina → Firecrawl → Kernel browser → reject | Fallback chain, rejected list |
-| LLM malformed JSON | Instructor re-asks, then fallback model | `retry` event |
-| Hallucinated quote | Quote dropped, confidence lowered | Lower confidence badge |
-| Too few verified results | Supervisor re-plans (up to 3 rounds) | Purple `decision` event, loop edge |
-| Missing profile fields | Clarifier interrupt → resume | Inline card with voice answers |
-| Neo4j down | In-memory networkx graph | `fallback` event |
+| LLM malformed JSON | Instructor re-asks, then the fallback model | Retry event |
+| Hallucinated quote | Quote dropped, confidence lowered | Lower confidence |
+| Too few verified results | Supervisor re-plans (up to 3 rounds) | Decision event, re-plan loop on the map |
+| Missing profile fields | Clarifier interrupt → resume | Inline question card |
+| Neo4j down | In-memory graph | Fallback event |
 | GitHub rate limit / no GitHub | Unauthenticated retry → skip enrichment | Skipped node |
-| Expired deadline | Excluded from the top 5 | Grey badge |
-| Opportunity tied to a different country | Deterministic country check | Marked `not_eligible`, excluded from top 5 |
-| Crash mid-run | Checkpoint kept; run marked failed | Red event |
+| Expired deadline or wrong country | Excluded from the top 5 | Badge / not eligible |
+| Crash mid-run | Checkpoint kept, run marked failed | Error event, replay available |
 
-Chaos Mode injects each of these once per run so the recovery is visible:
-
-`search_primary_down`, `fetch_timeout`, `llm_bad_json`, `graph_db_down`, `github_rate_limited`.
+Chaos Mode injects one of each on purpose: `search_primary_down`, `fetch_timeout`,
+`llm_bad_json`, `graph_db_down`, `github_rate_limited`.
 
 ---
 
-## Layout
+## REST API
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/health` | Provider configuration (booleans only) |
+| GET | `/api/meta` | Providers, samples, chaos captions, median duration |
+| POST | `/api/runs` | Create a run (PDFs, description, form fields, chaos) |
+| GET | `/api/runs` | Run summaries |
+| GET | `/api/runs/{id}` | Status, report, pending questions |
+| GET | `/api/runs/{id}/events` | Live SSE event stream |
+| GET | `/api/runs/{id}/events.json` | Stored events (replay) |
+| POST | `/api/runs/{id}/resume` | Answer a Clarifier question |
+| GET | `/api/runs/{id}/graph` | Knowledge-graph nodes and links |
+| POST | `/api/runs/{id}/whatif` | Instant eligibility recalculation (no LLM) |
+| GET | `/api/runs/{id}/report.md` · `sop.md` · `deadlines.ics` | Downloads |
+
+Full schema at `/docs`.
+
+---
+
+## Tests
+
+```bash
+cd backend && .venv/bin/python -m pytest -q    # backend
+cd frontend && npm test                        # Vitest unit tests
+cd frontend && npx playwright test             # end-to-end flows, layout checks, screenshots
+```
+
+The Playwright suite runs at 1440, 1280, 1024 and 390 px plus dark mode, and checks layout
+invariants: no horizontal scroll, no overlapping agent nodes, edges attached to nodes, aligned
+containers, no clipped text, a readable canvas zoom and 32 px mobile tap targets.
+
+---
+
+## Project layout
 
 ```
 opportunity-agent/
 ├─ backend/
 │  ├─ app/
-│  │  ├─ api/          REST routes, SSE, meta, SPA-facing response models
-│  │  ├─ core/         llm, http, fallback, events, store, chaos, agent decorator
-│  │  ├─ models/       Pydantic shapes shared by API and agents
-│  │  ├─ tools/        pdf, github, search, fetch, browser, graph_store
-│  │  ├─ services/     intake, samples, matching, runner, report, calendar
-│  │  ├─ agents/       one file per agent
-│  │  ├─ graph/        LangGraph build + supervisor routing
-│  │  └─ prompts/      markdown prompts (SYSTEM + USER)
-│  ├─ scripts/         check_keys, smoke_graph, make_sample_pdfs, export_diagram, dev mock
-│  ├─ samples/         four fictional profiles
+│  │  ├─ api/        REST routes, SSE, response models
+│  │  ├─ core/       llm, http, fallback, events, store, chaos, agent decorator
+│  │  ├─ models/     Pydantic shapes
+│  │  ├─ tools/      pdf, github, search, fetch, browser, graph_store
+│  │  ├─ services/   intake, samples, matching, runner, report, calendar
+│  │  ├─ agents/     one file per agent
+│  │  ├─ graph/      LangGraph build + supervisor routing
+│  │  └─ prompts/    markdown prompts
+│  ├─ scripts/       check_keys, smoke_graph, make_sample_pdfs, export_diagram
+│  ├─ samples/       four fictional student profiles
 │  └─ tests/
 ├─ frontend/
-│  ├─ src/api/         generated schema, types, client, TanStack Query hooks
-│  ├─ src/state/       event reducer, SSE stream, replay
-│  ├─ src/swarm/       React Flow canvas, agent metadata and layout
-│  ├─ src/components/  layout, intake, run, results, shadcn primitives
-│  ├─ src/pages/       Home, Run, History, NotFound
-│  ├─ src/lib/         coverage, format, speech, theme, URL helpers
-│  ├─ src/styles/      globals.css design tokens
-│  └─ e2e/             Playwright flows, layout invariants, screenshots
-├─ docs/
-│  ├─ architecture.md
-│  ├─ agents.mmd
-│  └─ notes.md
-└─ agent-plan.md / human-plan.md
+│  ├─ src/api/       generated schema, client, query hooks
+│  ├─ src/state/     event reducer, SSE stream, replay
+│  ├─ src/swarm/     React Flow agent map
+│  ├─ src/components/ home, intake, run, results, layout, art, ui
+│  ├─ src/pages/     Home, Run, History, NotFound
+│  └─ e2e/           Playwright flows, layout invariants, screenshots
+└─ docs/
+   ├─ images/        architecture diagrams (light + dark)
+   ├─ screenshots/   UI at desktop, dark and mobile
+   ├─ architecture.md
+   └─ notes.md
 ```
 
 ---
 
-## Development without LLM credits
+## Samples
 
-`backend/scripts/dev_mock_llm.py` is a local OpenAI-compatible mock that returns canned, clearly
-fake extractions. It is useful for testing the graph, UI, chaos recovery and interrupt/resume
-without spending money — **it is not a substitute for a real run and must never be used for a
-demo or submission**.
-
-```bash
-cd backend
-.venv/bin/python scripts/dev_mock_llm.py          # terminal 1, port 9100
-
-LLM_API_BASE=http://127.0.0.1:9100/v1 LLM_API_KEY=mock \
-MODEL_FAST=openai/mock-fast MODEL_SMART=openai/mock-smart \
-.venv/bin/uvicorn app.main:app --port 8000        # terminal 2
-```
-
-With the mock, search and page fetches are still real; only extraction and writing are canned.
-
----
-
-## Screenshots
-
-| Intake | Mission control |
-|---|---|
-| ![Home](docs/screenshots/home-desktop-1440.png) | ![Mission control](docs/screenshots/run-mid-desktop-1440.png) |
-
-| Results | SOP |
-|---|---|
-| ![Results](docs/screenshots/run-finished-matches-desktop-1440.png) | ![SOP](docs/screenshots/run-finished-sop-desktop-1440.png) |
-
-Dark mode, files attached, Unlock more and every mobile layout are in
-[`docs/screenshots/`](docs/screenshots/).
+`backend/samples/` holds four fictional students — **Rahul** (B.Tech CSE → MS in AI), **Priya**
+(Biotechnology → bioinformatics), **Arjun** (B.Com + work experience → MBA) and **Meera**
+(ECE → robotics PhD). They prove nothing is hard-coded: a different profile works with no code
+changes.
 
 ---
 
 ## Security
 
-- `.env` is gitignored; `.env.example` is the committed template.
+- `backend/.env` is gitignored; `backend/.env.example` is the committed template.
 - Keys are read only through `app/config.py`; `scripts/check_keys.py` prints status, never values.
-- Revoke a key immediately if it is ever pushed or recorded.
+- Uploaded documents are used only for the run; their text is sent to the language model that
+  powers the search.
+
+---
+
+## About this project
+
+ScholarSwarm was built for the **TetraNoodle AI Hackathon 2026** — the "AI Scholarship Finder"
+challenge: build a team of AI agents that understands a student, researches real opportunities on
+the internet, checks eligibility against official sources, recommends the best matches and helps
+the student apply.
