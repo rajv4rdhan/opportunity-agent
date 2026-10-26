@@ -46,6 +46,7 @@ export function Header() {
                 variant="ghost"
                 className={cn(
                   'h-8 px-3 text-sm text-muted hover:bg-subtle hover:text-ink',
+                  item.href === '/' && 'hidden sm:inline-flex',
                   active && 'bg-subtle text-ink',
                 )}
               >

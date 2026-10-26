@@ -57,6 +57,10 @@ function errorMessage(code: string): string {
   return 'Voice input stopped'
 }
 
+export function speechSupported(): boolean {
+  return constructorFor() !== null
+}
+
 export interface SpeechOptions {
   lang?: string
   onFinal?: (text: string) => void
