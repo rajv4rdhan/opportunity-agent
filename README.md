@@ -5,11 +5,6 @@ speak. A swarm of AI agents reads your profile, searches the web, opens official
 every rule against you with a verbatim quote, ranks your best matches and drafts your statement of
 purpose — and you can watch every step live.
 
-| Intake | Live run | Results |
-|---|---|---|
-| ![Home](docs/screenshots/home-desktop-1440.png) | ![Live run](docs/screenshots/run-mid-desktop-1440.png) | ![Results](docs/screenshots/run-finished-matches-desktop-1440.png) |
-
----
 
 ## Highlights
 
