@@ -106,7 +106,6 @@ def _profile_preview(result: dict) -> dict | None:
     github = result.get("github")
     if github is not None:
         preview["github_username"] = getattr(github, "username", None)
-    preview = {key: value for key, value in preview.items() if value not in (None, "", [])}
 
     if len(json.dumps(preview, default=str)) > 2000:
         preview["projects"] = projects[:3]

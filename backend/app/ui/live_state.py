@@ -401,7 +401,18 @@ def reduce_event(view: RunView, event: Event) -> set[str]:
 
     _update_phases(view)
     _refresh_edges(view)
-    return dirty
+    return dirty & {
+        "canvas",
+        "phase",
+        "activity",
+        "sources",
+        "profile",
+        "input",
+        "browser",
+        "graph",
+        "summary",
+        "results",
+    }
 
 
 def worker_summary(view: RunView) -> dict[str, int]:

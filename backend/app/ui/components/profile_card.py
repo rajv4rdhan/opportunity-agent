@@ -29,6 +29,17 @@ def _money(value) -> str:
         return "—"
 
 
+def _cgpa(snapshot: dict) -> str | None:
+    value = snapshot.get("cgpa")
+    if value is None:
+        return None
+    scale = snapshot.get("cgpa_scale") or 10
+    try:
+        return f"{value}/{float(scale):g}"
+    except (TypeError, ValueError):
+        return str(value)
+
+
 class ProfileCard:
     def __init__(self) -> None:
         self._signature: str | None = None
@@ -56,11 +67,7 @@ class ProfileCard:
                     ("University", snapshot.get("university")),
                     (
                         "CGPA",
-                        (
-                            f"{snapshot.get('cgpa')}/{snapshot.get('cgpa_scale', 10):g}"
-                            if snapshot.get("cgpa") is not None
-                            else None
-                        ),
+                        _cgpa(snapshot),
                     ),
                     (
                         "Target",
