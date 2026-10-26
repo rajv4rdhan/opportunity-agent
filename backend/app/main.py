@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
 from fastapi import FastAPI
+from nicegui import app as ui_app
 from nicegui import ui
 
 from app.api.health import router as health_router
@@ -14,6 +15,7 @@ from app.config import settings
 from app.core import store
 from app.services import runner
 from app.ui import register_pages
+from app.ui.theme import STATIC_DIR
 
 
 @asynccontextmanager
@@ -31,6 +33,8 @@ def create_app() -> FastAPI:
     app = FastAPI(title="ScholarSwarm", version="0.1.0", lifespan=lifespan)
     app.include_router(health_router, prefix="/api")
     app.include_router(runs_router, prefix="/api")
+    if not any(getattr(route, "path", "") == "/static" for route in ui_app.routes):
+        ui_app.add_static_files("/static", STATIC_DIR)
 
     register_pages()
     ui.run_with(
